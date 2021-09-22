@@ -28,6 +28,12 @@ class MyGLW(GraphicsView):
 
         return plot 
 
+    def addSpectraPlot(self,row=None,col=None,rowspan=1,colspan=1,**kwargs):
+        plot = SpectraItem(**kwargs)
+        self.addItem(plot,row,col,rowspan,colspan)
+
+        return plot 
+
 class FancyPlotItem(PlotItem):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -36,6 +42,36 @@ class FancyPlotItem(PlotItem):
         self.roi_list = []
 
         self.setMenuEnabled(False)
+
+class SpectraItem(PlotItem):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+
+        self.vb.spectra_plot = self 
+
+        self.setMenuEnabled(False)
+
+class MySpectraViewBox(ViewBox):
+    def __init__(self,*args,**kwargs):
+
+        self.title = kwargs.pop('title','')
+
+        super().__init__(*args,**kwargs)
+
+        self.setDefaultPadding(0.0)
+        self.setMouseMode(self.RectMode)
+
+
+    def hoverEvent(self,event):
+
+        if event.isExit():
+            self.spectra_plot.setTitle(self.title)
+            return 
+
+        p = self.mapToView(event.pos())
+        x,y = p.x(),p.y()
+
+        self.spectra_plot.setTitle('x: %d  y: %d'%(x,y))
 
 class MyViewBox(ViewBox):
     """
@@ -59,7 +95,7 @@ class MyViewBox(ViewBox):
     def hoverEvent(self,event):
 
         if event.isExit():
-            self.image_plot.setTitle('')
+            self.image_plot.setTitle('Image')
             return 
 
         p = self.mapToView(event.pos())
@@ -112,8 +148,6 @@ class MyViewBox(ViewBox):
             else:
                 self.updateRoiBox(event.buttonDownPos(), event.pos())
 
-
-
 class MyROI(ROI):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -154,7 +188,6 @@ class MyROI(ROI):
 
             self.redraw()
 
-
 class MainWindow(QtWidgets.QMainWindow):
     """
     Modified Main Window class
@@ -183,7 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Image
         """
 
-        self.image_plot = self.layout.addFancyPlot(viewBox = MyViewBox(border=[255,255,255],name='image_plot'))
+        self.image_plot = self.layout.addFancyPlot(viewBox = MyViewBox(border=[255,255,255],name='image_plot'),enableMenu=False)
         self.layout.ci.layout.setRowStretchFactor(0,3)
         self.layout.ci.layout.setRowStretchFactor(1,2)
         self.layout.ci.layout.setRowStretchFactor(2,2)
@@ -206,7 +239,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Spectra 1
         """
         self.layout.nextRow()
-        self.intensity_plot = self.layout.addPlot(enableMenu=False)
+        self.intensity_plot = self.layout.addSpectraPlot(viewBox = MySpectraViewBox(name='intensity_plot',title='Full Intensity'))
 
         self.intensity_plot.setXRange(0,1280,padding=0)
         self.intensity_plot.setLabel('bottom',text='Channel')
@@ -225,7 +258,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         self.layout.nextRow()
 
-        self.spectra_plot = self.layout.addPlot(enableMenu=False)
+        self.spectra_plot = self.layout.addSpectraPlot(viewBox = MySpectraViewBox(name='spectra_plot',title='ROI Spectras'))
         self.image_plot.vb.spectra_plot = self.spectra_plot
         self.image_plot.vb.main = self
 
@@ -387,13 +420,11 @@ class MainWindow(QtWidgets.QMainWindow):
             print('selected: blue')
 
 def main():
-
     """
-    Readind data
+    Reading data
     """
     data = DataXRD('data_XRD2/').load_h5()
     print(data)
-
     """
     Open window
     """
