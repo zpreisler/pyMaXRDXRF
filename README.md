@@ -16,4 +16,10 @@ python main.py data_XRD -l
 
 Scanning parameters `'Scanning_parameters.txt'` and calibration file `'calibration.ini'` are by default located in the data folder.
 
+Keyboard:
+
+You can print ROIS by pressing `'p'`
+
+Press `'m'` or `space` to change mode
+
 ![Snapshot](doc/snapshot.png)
