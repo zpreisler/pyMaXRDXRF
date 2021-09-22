@@ -130,6 +130,7 @@ class DataXRD():
         return array(x)
 
     def save_h5(self,name = 'data.h5'):
+
         with h5py.File(name,'w') as f:
             f.create_dataset('inverted',data = self.inverted)
             f.create_dataset('reshaped',data = self.reshaped)
@@ -138,6 +139,7 @@ class DataXRD():
         return self
 
     def load_h5(self,name = 'data.h5'):
+
         with h5py.File(name,'r') as f:
             x = f['inverted']
             self.inverted = x[:]
