@@ -10,6 +10,8 @@ from numpy import uint8,array,asarray,stack
 from numpy.random import random,randint
 from itertools import cycle
 
+from argparse import ArgumentParser
+
 class MyGLW(GraphicsView):
     """
     Enhanced
@@ -178,7 +180,8 @@ class MyROI(ROI):
     def redraw(self):
         self.spectra_plot.clear()
         for roi in self.image_plot.roi_list:
-            self.spectra_plot.plot(roi.z,pen=roi.pen)
+            #self.spectra_plot.plot(roi.z,pen=roi.pen)
+            self.spectra_plot.plot(roi.data.cx,roi.z,pen=roi.pen)
 
     def mouseClickEvent(self,event):
         if event.button() == QtCore.Qt.MouseButton.RightButton:
@@ -241,6 +244,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.layout.nextRow()
         self.intensity_plot = self.layout.addSpectraPlot(viewBox = MySpectraViewBox(name='intensity_plot',title='Full Intensity'))
 
+        #self.intensity_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
         self.intensity_plot.setXRange(0,1280,padding=0)
         self.intensity_plot.setLabel('bottom',text='Channel')
         self.intensity_plot.setLabel('left',text='Total count per pixel')
@@ -251,6 +255,7 @@ class MainWindow(QtWidgets.QMainWindow):
         res = z.shape[0] * z.shape[1]
         z = z.sum(axis=0).sum(axis=0) / res
 
+        #self.intensity_plot.plot(self.data.cx,z,pen=fn.mkPen((255,166,166), width=1.666))
         self.intensity_plot.plot(z,pen=fn.mkPen((255,166,166), width=1.666))
 
         """
@@ -262,9 +267,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.vb.spectra_plot = self.spectra_plot
         self.image_plot.vb.main = self
 
-        self.spectra_plot.setXRange(0,1280,padding=0)
+        #self.spectra_plot.setXRange(0,1280,padding=0)
+        self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
 
-        self.spectra_plot.setLabel('bottom',text='Channel')
+        #self.spectra_plot.setLabel('bottom',text='Channel')
+        self.spectra_plot.setLabel('bottom',text='Angle')
         self.spectra_plot.setLabel('left',text='Count per pixel')
         self.spectra_plot.setTitle('ROI spectras')
 
@@ -421,9 +428,37 @@ class MainWindow(QtWidgets.QMainWindow):
 
 def main():
     """
+    ArgParse
+    """
+    parser = ArgumentParser()
+
+    parser.add_argument('path')
+    parser.add_argument('--parameters',default='Scanning_Parameters.txt',help='scanning parameters file')
+    parser.add_argument('-c','--calibration',default='calibration.ini',help='calibration file')
+    parser.add_argument('-l','--load',action='store_true')
+
+    args = parser.parse_args()
+    kwargs = vars(args)
+
+    print(args)
+    print('Source data directory:',args.path)
+
+    """
     Reading data
     """
-    data = DataXRD('data_XRD2/').load_h5()
+
+    load = kwargs.pop('load')
+
+    if load is False:
+        data = DataXRD(**kwargs).from_source()
+        data.save_h5()
+
+    else:
+        data = DataXRD(**kwargs).load_h5()
+
+    data.read_calibration_file()
+    data.calibrate_channels()
+
     print(data)
     """
     Open window

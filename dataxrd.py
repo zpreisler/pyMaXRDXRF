@@ -1,7 +1,9 @@
-from numpy import array,save,load,argmax,swapaxes
-import re
-from glob import glob
+from numpy import array,save,load,argmax,swapaxes,loadtxt,arange
 from matplotlib.pyplot import imshow,plot,figure,show
+from scipy.optimize import curve_fit
+
+from glob import glob
+import re
 import h5py
 
 class DataXRD():
@@ -9,10 +11,36 @@ class DataXRD():
     Class for processing XRD data.
     """
 
-    def __init__(self,path = './'):
+    def __init__(self,path = './',parameters = 'Scanning_Parameters.txt',calibration='Calibration.ini'):
         self.path = path
+        self.parameters = parameters
+        self.calibration = calibration
 
-    def read_params(self,name):
+    def read_calibration_file(self,name=None):
+        if name == None:
+            name = self.path + '/' + self.calibration
+
+        self.calib_data = loadtxt(name,unpack=True)
+
+    @staticmethod
+    def fce_second(x,a,b,c,d):
+        return a * x**3 + b * x**2 + c * x +d 
+
+    @staticmethod
+    def fce_second(x,a,b,c):
+        return a * x**2 + b * x + c 
+
+    @staticmethod
+    def fce_linear(x,a,b):
+        return a * x + b 
+
+    def calibrate_channels(self):
+        x,y = self.calib_data
+        self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
+        print('Calibrated data:',self.opt)
+        self.cx = self.fce_second(arange(0,1280),*self.opt)
+
+    def read_params(self,name=None):
         """
         Process scanning parameters.
 
@@ -26,7 +54,10 @@ class DataXRD():
         dictionary
             a dictionary of parameters
         """
+        if name == None:
+            name = self.path + '/' + self.parameters
 
+        print('Reading parameters from:',name)
         params = {}
 
         with open(name,'r') as f:
@@ -42,6 +73,7 @@ class DataXRD():
                         params[x.group(1)] = int(n.group(1))
 
         self.params = params
+        print(self.params)
 
     def read_xrd(self):
         names = sorted(glob(self.path + '/*.dat'))
@@ -82,6 +114,7 @@ class DataXRD():
 
     def reshape_source(self):
         self.reshaped = self.source.reshape(self.params['y'],self.params['x'],-1)
+        self.shape = self.reshaped.shape
 
     def invert_reshaped(self):
         self.inverted = self.invert(self.reshaped)
@@ -91,7 +124,7 @@ class DataXRD():
         if hasattr(self,'__all_spectra'):
             return self.__all_spectra
         else:
-            self.__all_spectra = self.inverted.sum(axis = 0).sum(axis = 0)
+            self.__all_spectra = self.inverted.sum(axis = 0).sum(axis = 0) / (self.shape[0] * self.shape[1])
             return self.__all_spectra
 
     @property
@@ -129,7 +162,24 @@ class DataXRD():
 
         return array(x)
 
-    def save_h5(self,name = 'data.h5'):
+    def from_source(self):
+        """
+        Read data from source
+        """
+        
+        self.read_params()
+        self.read_xrd()
+        self.reshape_source()
+        self.invert_reshaped()
+
+        return self
+
+    def save_h5(self,name = None):
+
+        if name == None:
+            name = self.path + '/' + 'data.h5'
+
+        print('Saving:',name)
 
         with h5py.File(name,'w') as f:
             f.create_dataset('inverted',data = self.inverted)
@@ -138,7 +188,12 @@ class DataXRD():
 
         return self
 
-    def load_h5(self,name = 'data.h5'):
+    def load_h5(self,name = None):
+
+        if name == None:
+            name = self.path + '/' + 'data.h5'
+
+        print('Loading:',name)
 
         with h5py.File(name,'r') as f:
             x = f['inverted']
@@ -146,6 +201,7 @@ class DataXRD():
 
             x = f['reshaped']
             self.reshaped = x[:]
+            self.shape = self.reshaped.shape
 
             x = f['source']
             self.source = x[:]
