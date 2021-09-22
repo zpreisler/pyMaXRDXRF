@@ -6,7 +6,7 @@ from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
 from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout
 from pyqtgraph.Qt import QtCore,QtWidgets,QtGui
 
-from numpy import uint8,array,asarray,stack
+from numpy import uint8,array,asarray,stack,savetxt,c_
 from numpy.random import random,randint
 from itertools import cycle
 
@@ -379,6 +379,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 x = asarray(self.selected.getRegion()).astype(int)
                 x[1] -= self.speed
                 self.selected.setRegion(x)
+
+        if event.key() == QtCore.Qt.Key.Key_P:
+            for i,roi in enumerate(self.image_plot.roi_list):
+                name = self.data.path + '/' + 'roi_%d.dat'%i
+                print('Saving ROI spectras',name)
+                savetxt(name,c_[roi.data.cx,roi.z])
 
         if event.key() == QtCore.Qt.Key.Key_X:
             self.speed = next(self.speed_cycle)

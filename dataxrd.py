@@ -10,7 +10,6 @@ class DataXRD():
     """
     Class for processing XRD data.
     """
-
     def __init__(self,path = './',parameters = 'Scanning_Parameters.txt',calibration='Calibration.ini'):
         self.path = path
         self.parameters = parameters
