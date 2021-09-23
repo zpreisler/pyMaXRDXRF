@@ -24,6 +24,8 @@ Press `'m'` or `space` to change mode
 
 Press `'n'` to change ROI normalization
 
+Press `'c'` to turn on/off calibration
+
 pres `'1'`, `'2'` or `'3'` to change the selection region in the RGB mode.
 
 ![Snapshot](doc/snapshot.png)
