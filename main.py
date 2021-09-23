@@ -405,8 +405,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if self.spectra_plot.normalized_roi == True:
                 self.spectra_plot.normalized_roi = False
+                print('ROI spectra not normalized')
             else:
                 self.spectra_plot.normalized_roi = True
+                print('ROI spectra normalized to 1000')
 
             self.redrawROI()
 
