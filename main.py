@@ -165,11 +165,15 @@ class MyROI(ROI):
 
         s1,s2 = y[0][0],y[0][1]
         z = self.data.inverted[s1,s2]
-        res = z.shape[0] * z.shape[1]
+
+        res = 1 / (z.shape[0] * z.shape[1])
 
         z = z.sum(axis=0).sum(axis=0)
 
-        self.z = z / res
+        if self.spectra_plot.normalized_roi == True:
+            res = 1000.0 / z.max()
+
+        self.z = z * res
 
         return self.z
 
@@ -267,6 +271,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.vb.spectra_plot = self.spectra_plot
         self.image_plot.vb.main = self
 
+        self.spectra_plot.normalized_roi = True
+
         #self.spectra_plot.setXRange(0,1280,padding=0)
         self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
 
@@ -318,6 +324,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.rgb_region += [region]
             self.intensity_plot.addItem(region)
+
+    def redrawROI(self):
+        for roi in self.image_plot.roi_list:
+            roi.calc()
+        roi.redraw()
 
     def mono_update(self):
         """
@@ -384,15 +395,25 @@ class MainWindow(QtWidgets.QMainWindow):
             for i,roi in enumerate(self.image_plot.roi_list):
                 name = self.data.path + '/' + 'roi_%d.dat'%i
                 print('Saving ROI spectras',name)
-                savetxt(name,c_[roi.data.cx,roi.z])
+                savetxt(name,c_[roi.data.cx,roi.z],fmt='%0.3f %d')
 
         if event.key() == QtCore.Qt.Key.Key_X:
             self.speed = next(self.speed_cycle)
-            print(self.speed)
+            print('Shift speed:',self.speed)
+
+        if event.key() == QtCore.Qt.Key.Key_N:
+
+            if self.spectra_plot.normalized_roi == True:
+                self.spectra_plot.normalized_roi = False
+            else:
+                self.spectra_plot.normalized_roi = True
+
+            self.redrawROI()
 
         if event.key() == QtCore.Qt.Key.Key_M or event.key() == QtCore.Qt.Key.Key_Space:
             self.mode = (self.mode + 1) % 3
-            print(self.mode)
+            modes = ['Intesity','Mono','RGB']
+            print('Mode selected:',self.mode,modes[self.mode])
 
             if self.mode == 1:
                 self.selected = self.mono_region

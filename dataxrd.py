@@ -75,7 +75,7 @@ class DataXRD():
         print(self.params)
 
     def read_xrd(self):
-        names = sorted(glob(self.path + '/*.dat'))
+        names = sorted(glob(self.path + '/Frame*.dat'))
 
         print("Reading data")
 
