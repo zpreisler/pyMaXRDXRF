@@ -36,8 +36,11 @@ class DataXRD():
     def calibrate_channels(self):
         x,y = self.calib_data
         self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
+
         print('Calibrated data:',self.opt)
-        self.cx = self.fce_second(arange(0,1280),*self.opt)
+
+        self.c0 = arange(0,1280)
+        self.cx = self.fce_second(self.c0,*self.opt)
 
     def read_params(self,name=None):
         """

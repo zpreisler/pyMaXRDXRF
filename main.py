@@ -75,6 +75,10 @@ class MySpectraViewBox(ViewBox):
 
         self.spectra_plot.setTitle('x: %d  y: %d'%(x,y))
 
+    def mouseClickEvent(self, event):
+        p = self.mapToView(event.pos())
+        print('%d'%(p.x()))
+
 class MyViewBox(ViewBox):
     """
     MyViewBox
@@ -104,6 +108,12 @@ class MyViewBox(ViewBox):
         x,y = p.x(),p.y()
 
         self.image_plot.setTitle('x: %d  y: %d'%(x,y))
+
+    def mouseClickEvent(self, event):
+
+        p = self.mapToView(event.pos())
+        x,y = p.x(),p.y()
+        print('x: %d y: %d'%(x,y))
 
     def updateRoiBox(self,p1,p2):
 
@@ -185,7 +195,15 @@ class MyROI(ROI):
         self.spectra_plot.clear()
         for roi in self.image_plot.roi_list:
             #self.spectra_plot.plot(roi.z,pen=roi.pen)
-            self.spectra_plot.plot(roi.data.cx,roi.z,pen=roi.pen)
+            if self.spectra_plot.calibration == True:
+                self.spectra_plot.plot(roi.data.cx,roi.z,pen=roi.pen)
+            else:
+                self.spectra_plot.plot(roi.z,pen=roi.pen)
+
+        if self.spectra_plot.calibration == True:
+            self.spectra_plot.setLabel('bottom',text='Angle')
+        else:
+            self.spectra_plot.setLabel('bottom',text='Channel')
 
     def mouseClickEvent(self,event):
         if event.button() == QtCore.Qt.MouseButton.RightButton:
@@ -194,6 +212,11 @@ class MyROI(ROI):
                 self.image_plot.removeItem(self)
 
             self.redraw()
+    
+        else:
+            p = self.mapToView(event.pos())
+            x,y = p.x(),p.y()
+            print('x: %d y: %d'%(x,y))
 
 class MainWindow(QtWidgets.QMainWindow):
     """
@@ -272,6 +295,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.vb.main = self
 
         self.spectra_plot.normalized_roi = True
+        self.spectra_plot.calibration = True
 
         #self.spectra_plot.setXRange(0,1280,padding=0)
         self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
@@ -401,6 +425,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.speed = next(self.speed_cycle)
             print('Shift speed:',self.speed)
 
+        if event.key() == QtCore.Qt.Key.Key_C:
+            if self.spectra_plot.calibration == True:
+                print('Calibration off')
+                self.spectra_plot.calibration = False
+                self.spectra_plot.setXRange(0,1280,padding=0)
+            else:
+                print('Calibration on')
+                self.spectra_plot.calibration = True
+                self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
+
+            self.redrawROI()
+
         if event.key() == QtCore.Qt.Key.Key_N:
 
             if self.spectra_plot.normalized_roi == True:
@@ -471,7 +507,6 @@ def main():
 
     print(args)
     print('Source data directory:',args.path)
-
     """
     Reading data
     """
