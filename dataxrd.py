@@ -112,7 +112,7 @@ class DataXRD():
 
             z += [array(y)]
 
-        self.source = array(z)
+        self.source = array(z)[::-1]
 
     def reshape_source(self):
         self.reshaped = self.source.reshape(self.params['y'],self.params['x'],-1)
