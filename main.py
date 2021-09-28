@@ -440,8 +440,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 print('Saving ROI spectras',name)
                 savetxt(name,c_[roi.data.cx,roi.z],fmt='%0.3f %d')
 
-                name = self.data.path + '/' + 'roi_%d.tiff'%i
                 print('Saving ROI images',name)
+                name = self.data.path + '/' + 'roi_%d.tiff'%i
+                imsave(name,roi.data.image)
+
+                name = self.data.path + '/' + 'roi_crop_%d.tiff'%i
+                print('Saving ROI crop images',name)
                 imsave(name,roi.crop())
 
         if event.key() == QtCore.Qt.Key.Key_X:
