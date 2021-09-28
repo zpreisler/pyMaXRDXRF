@@ -10,8 +10,10 @@ where data_XRD is a folder with the source data.
 
 after first use you can load '.h5' file with  `-l` option 
 
+`-s $n` option can be used to set shift at start of the program
+
 ```
-python main.py data_XRD -l
+python main.py data_XRD -l -s 2
 ```
 
 Scanning parameters `'Scanning_parameters.txt'` and calibration file `'calibration.ini'` are by default located in the data folder.
