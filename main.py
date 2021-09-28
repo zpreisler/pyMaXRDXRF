@@ -194,7 +194,7 @@ class MyROI(ROI):
         s1,s2 = y[0][0],y[0][1]
         z = self.data.image[s1,s2]
 
-        return z
+        return z[::-1]
 
     def roi_update(self):
         self.calc()
