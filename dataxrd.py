@@ -19,7 +19,13 @@ class DataXRD():
         if name == None:
             name = self.path + '/' + self.calibration
 
-        self.calib_data = loadtxt(name,unpack=True)
+        try:
+            self.calib_data = loadtxt(name,unpack=True)
+            print('Calibration data:',self.calib_data)
+        except:
+            self.calib_data = array([[1,2,3],[1,2,3]])
+            print(name,'is missing.')
+            print('Calibration data:',self.calib_data)
 
     @staticmethod
     def fce_second(x,a,b,c,d):
