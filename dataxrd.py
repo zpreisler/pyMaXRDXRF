@@ -1,4 +1,4 @@
-from numpy import array,save,load,argmax,swapaxes,loadtxt,arange
+from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
 
@@ -215,3 +215,30 @@ class DataXRD():
             self.source = x[:]
 
         return self
+
+    @staticmethod
+    def pad_left(x,n):
+        y_odd = pad(x,((0,0),(n,0),(0,0)))
+        y_even = pad(x,((0,0),(0,n),(0,0)))
+        y_odd[::2,:,:] = y_even[::2,:,:]
+        return y_odd
+
+    @staticmethod
+    def pad_right(x,n):
+        y_odd = pad(x,((0,0),(n,0),(0,0)))
+        y_even = pad(x,((0,0),(0,n),(0,0)))
+        y_odd[1::2,:,:] = y_even[1::2,:,:]
+        return y_odd
+
+    def shift(self,n):
+        if n == 0:
+            return
+        elif n > 0:
+            self.inverted = self.pad_left(self.inverted,n)
+            self.reshaped = self.pad_left(self.reshaped,n)
+
+        elif n < 0:
+            n = -n
+            self.inverted = self.pad_right(self.inverted,n)
+            self.reshaped = self.pad_right(self.reshaped,n)
+

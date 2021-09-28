@@ -6,7 +6,7 @@ from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
 from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout
 from pyqtgraph.Qt import QtCore,QtWidgets,QtGui
 
-from numpy import uint8,array,asarray,stack,savetxt,c_
+from numpy import uint8,array,asarray,stack,savetxt,c_,pad,where
 from numpy.random import random,randint
 from itertools import cycle
 
@@ -392,13 +392,26 @@ class MainWindow(QtWidgets.QMainWindow):
         rgb_image = stack(image,-1).astype(uint8)
 
         self.data.image = rgb_image 
-
         self.img.setImage(rgb_image)
+
+    def pad_plus(self):
+
+        image = self.data.image
+
+        y_odd = pad(image,((0,0),(2,0),(0,0)))
+        y_even = pad(image,((0,0),(0,2),(0,0)))
+
+        y_odd[::2,:,:] = y_even[::2,:,:]
+
+        x = where(y_odd != 0)
+        image = y_odd[min(x[0]) : max(x[0]) + 1, min(x[1]) : max(x[1]) + 1]
+        print(image.shape)
+
+        self.img.setImage(image)
 
     def intensityUpdate(self):
 
         self.data.image = self.image 
-
         self.img.setImage(self.image)
 
     def keyPressEvent(self,event):
@@ -409,6 +422,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Keyboard inputs
         """
+        if event.key() == QtCore.Qt.Key.Key_Q:
+            self.pad_plus()
 
         if event.key() == QtCore.Qt.Key.Key_Right:
             if self.selected:
@@ -527,6 +542,7 @@ def main():
     parser.add_argument('path')
     parser.add_argument('--parameters',default='Scanning_Parameters.txt',help='scanning parameters file')
     parser.add_argument('-c','--calibration',default='calibration.ini',help='calibration file')
+    parser.add_argument('-s','--shift',default=0,help='shift correction',type=int)
     parser.add_argument('-l','--load',action='store_true')
 
     args = parser.parse_args()
@@ -539,6 +555,7 @@ def main():
     """
 
     load = kwargs.pop('load')
+    shift = kwargs.pop('shift')
 
     if load is False:
         data = DataXRD(**kwargs).from_source()
@@ -546,6 +563,7 @@ def main():
 
     else:
         data = DataXRD(**kwargs).load_h5()
+        data.shift(shift)
 
     data.read_calibration_file()
     data.calibrate_channels()
