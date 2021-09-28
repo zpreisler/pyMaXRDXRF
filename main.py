@@ -10,6 +10,8 @@ from numpy import uint8,array,asarray,stack,savetxt,c_
 from numpy.random import random,randint
 from itertools import cycle
 
+from matplotlib.image import imsave
+
 from argparse import ArgumentParser
 
 class MyGLW(GraphicsView):
@@ -187,6 +189,13 @@ class MyROI(ROI):
 
         return self.z
 
+    def crop(self):
+        y = self.getArraySlice(self.data.image,self.img)
+        s1,s2 = y[0][0],y[0][1]
+        z = self.data.image[s1,s2]
+
+        return z
+
     def roi_update(self):
         self.calc()
         self.redraw()
@@ -259,6 +268,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
         self.img.setImage(self.image)
+
+        self.data.image = self.image
 
         self.image_plot.setYRange(0,self.image.shape[0])
         self.image_plot.setXRange(0,self.image.shape[1])
@@ -363,6 +374,8 @@ class MainWindow(QtWidgets.QMainWindow):
         integrated = self.data.inverted[:,:,left:right].sum(axis=2)
         image = (integrated / integrated.max() * 255).astype(uint8)
 
+        self.data.image = image 
+
         self.img.setImage(image)
 
     def rgbUpdate(self):
@@ -377,9 +390,15 @@ class MainWindow(QtWidgets.QMainWindow):
             image += [(integrated / integrated.max() * 255).astype(uint8)]
 
         rgb_image = stack(image,-1).astype(uint8)
+
+        self.data.image = rgb_image 
+
         self.img.setImage(rgb_image)
 
     def intensityUpdate(self):
+
+        self.data.image = self.image 
+
         self.img.setImage(self.image)
 
     def keyPressEvent(self,event):
@@ -420,6 +439,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 name = self.data.path + '/' + 'roi_%d.dat'%i
                 print('Saving ROI spectras',name)
                 savetxt(name,c_[roi.data.cx,roi.z],fmt='%0.3f %d')
+
+                name = self.data.path + '/' + 'roi_%d.tiff'%i
+                print('Saving ROI images',name)
+                imsave(name,roi.crop())
 
         if event.key() == QtCore.Qt.Key.Key_X:
             self.speed = next(self.speed_cycle)
