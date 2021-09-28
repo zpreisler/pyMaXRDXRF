@@ -560,6 +560,7 @@ def main():
     if load is False:
         data = DataXRD(**kwargs).from_source()
         data.save_h5()
+        data.shift(shift)
 
     else:
         data = DataXRD(**kwargs).load_h5()
