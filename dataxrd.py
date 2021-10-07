@@ -1,10 +1,11 @@
-from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad
+from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
 
 from glob import glob
 import re
 import h5py
+from scipy import signal
 
 class DataXRD():
     """
@@ -45,6 +46,8 @@ class DataXRD():
 
         print('Calibrated data:',self.opt)
 
+        print(len(x),len(y))
+        print('Shape:',self.inverted.shape)
         self.c0 = arange(0,1280)
         self.cx = self.fce_second(self.c0,*self.opt)
 
@@ -216,12 +219,43 @@ class DataXRD():
 
         return self
 
+    def shiftz(self):
+
+        off = 128
+        win = signal.windows.hann(8)
+        pad_data = pad(self.inverted,((0,0),(0,0),(128,128)),'wrap')
+        print("PAD:",self.inverted.shape,pad_data.shape)
+
+        G = []
+        for x,_x in enumerate(pad_data):
+            B = []
+            for y,_y in enumerate(_x):
+                select = _y[520 + off : 590 +off ]
+                filtered = signal.convolve(select, win, mode='same') / sum(win)
+                f = filtered.argmax()
+                B += [_y[f:1280+f]]
+
+            G += [array(B)]
+        G = array(G)
+
+        print("G:",G,G.shape)
+
+        self.inverted = G
+
     @staticmethod
     def pad_left(x,n):
         y_odd = pad(x,((0,0),(n,0),(0,0)))
         y_even = pad(x,((0,0),(0,n),(0,0)))
         y_odd[::2,:,:] = y_even[::2,:,:]
         return y_odd
+
+    @staticmethod
+    def pad_xleft(x,n):
+        #y_odd = pad(x,((0,0),(0,0),(n,0)))
+        #y_even = pad(x,((0,0),(0,0),(0,n)))
+        #y_odd[:,:,::2] = y_even[:,:,::2]
+        x[::2,:,:] = roll(x[::2,:,:],n,axis=2)
+        return x
 
     @staticmethod
     def pad_right(x,n):
@@ -236,6 +270,9 @@ class DataXRD():
         elif n > 0:
             self.inverted = self.pad_left(self.inverted,n)
             self.reshaped = self.pad_left(self.reshaped,n)
+
+            #self.inverted = self.pad_xleft(self.inverted,-4)
+            #self.reshaped = self.pad_xleft(self.reshaped,-4)
 
         elif n < 0:
             n = -n

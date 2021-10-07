@@ -185,7 +185,7 @@ class MyROI(ROI):
         if self.spectra_plot.normalized_roi == True:
             res = 1000.0 / z.max()
 
-        self.z = z * res
+        self.z = (z-z.min()) * res
 
         return self.z
 
@@ -266,7 +266,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.addItem(self.img)
         self.image_plot.setTitle('Image')
 
-        self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
+        #self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
+        self.image = ((self.data.integrated_spectra-self.data.integrated_spectra.min()) / (self.data.integrated_spectra.max()-self.data.integrated_spectra.min()) * 255).astype(uint8)
         self.img.setImage(self.image)
 
         self.data.image = self.image
@@ -373,6 +374,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         integrated = self.data.inverted[:,:,left:right].sum(axis=2)
         image = (integrated / integrated.max() * 255).astype(uint8)
+        #image = ((integrated-integrated.min()) / (integrated.max()-integrated.min()) * 255).astype(uint8)
 
         self.data.image = image 
 
@@ -388,6 +390,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             integrated = self.data.inverted[:,:,left:right].sum(axis=2)
             image += [(integrated / integrated.max() * 255).astype(uint8)]
+            #image += [((integrated-integrated.min()) / (integrated.max()-integrated.min()) * 255).astype(uint8)]
 
         rgb_image = stack(image,-1).astype(uint8)
 
@@ -544,6 +547,7 @@ def main():
     parser.add_argument('-c','--calibration',default='calibration.ini',help='calibration file')
     parser.add_argument('-s','--shift',default=0,help='shift correction',type=int)
     parser.add_argument('-l','--load',action='store_true')
+    parser.add_argument('-z','--shiftz',action='store_true')
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -556,6 +560,7 @@ def main():
 
     load = kwargs.pop('load')
     shift = kwargs.pop('shift')
+    shiftz = kwargs.pop('shiftz')
 
     if load is False:
         data = DataXRD(**kwargs).from_source()
@@ -565,6 +570,9 @@ def main():
     else:
         data = DataXRD(**kwargs).load_h5()
         data.shift(shift)
+
+        if shiftz:
+            data.shiftz()
 
     data.read_calibration_file()
     data.calibrate_channels()
