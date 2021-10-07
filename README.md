@@ -12,6 +12,8 @@ after first use you can load '.h5' file with  `-l` option
 
 `-s $n` option can be used to set shift at start of the program
 
+`-z $n` option can be used to set z-shift at start of the program
+
 ```
 python main.py data_XRD -l -s 2
 ```
