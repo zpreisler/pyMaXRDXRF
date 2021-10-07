@@ -221,26 +221,25 @@ class DataXRD():
 
     def shiftz(self):
 
-        off = 128
-        win = signal.windows.hann(8)
-        pad_data = pad(self.inverted,((0,0),(0,0),(128,128)),'wrap')
-        print("PAD:",self.inverted.shape,pad_data.shape)
+        off = 24 
+        win = signal.windows.hann(9)
 
-        G = []
-        for x,_x in enumerate(pad_data):
-            B = []
+        b = []
+        for x,_x in enumerate(self.inverted):
+            a = []
             for y,_y in enumerate(_x):
-                select = _y[520 + off : 590 +off ]
+                select = _y[555 - off : 555 + off].copy()
                 filtered = signal.convolve(select, win, mode='same') / sum(win)
-                f = filtered.argmax()
-                B += [_y[f:1280+f]]
+                f = filtered.argmax() - off
 
-            G += [array(B)]
-        G = array(G)
+                if f > -off and f < off:
+                    a += [roll(_y,-f)]
+                else:
+                    a += [_y]
 
-        print("G:",G,G.shape)
+            b += [array(a)]
 
-        self.inverted = G
+        self.inverted = array(b)
 
     @staticmethod
     def pad_left(x,n):

@@ -185,7 +185,8 @@ class MyROI(ROI):
         if self.spectra_plot.normalized_roi == True:
             res = 1000.0 / z.max()
 
-        self.z = (z-z.min()) * res
+        #self.z = (z-z.min()) * res
+        self.z = z * res
 
         return self.z
 
@@ -266,8 +267,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.addItem(self.img)
         self.image_plot.setTitle('Image')
 
-        #self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
-        self.image = ((self.data.integrated_spectra-self.data.integrated_spectra.min()) / (self.data.integrated_spectra.max()-self.data.integrated_spectra.min()) * 255).astype(uint8)
+        self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
+        #self.image = ((self.data.integrated_spectra-self.data.integrated_spectra.min()) / (self.data.integrated_spectra.max()-self.data.integrated_spectra.min()) * 255).astype(uint8)
         self.img.setImage(self.image)
 
         self.data.image = self.image
