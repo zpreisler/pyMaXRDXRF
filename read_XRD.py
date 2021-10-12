@@ -13,6 +13,7 @@ def main():
     parser.add_argument('path')
     parser.add_argument('--parameters',default='Scanning_Parameters.txt',help='scanning parameters file')
     parser.add_argument('-l','--load',action='store_true')
+    parser.add_argument('-n','--name',default='x.h5')
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -21,10 +22,12 @@ def main():
     print('Source data directory:',args.path)
 
     load = kwargs.pop('load')
+    name = kwargs.pop('name')
+    print('name:',name)
 
     if load is False:
         d = DataXRD(**kwargs).from_source()
-        d.save_h5()
+        d.save_h5(name=name)
 
     else:
         d = DataXRD(**kwargs).load_h5()

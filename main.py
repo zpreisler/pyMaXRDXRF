@@ -6,7 +6,7 @@ from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
 from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout
 from pyqtgraph.Qt import QtCore,QtWidgets,QtGui
 
-from numpy import uint8,array,asarray,stack,savetxt,c_,pad,where
+from numpy import uint8,array,asarray,stack,savetxt,c_,pad,where,minimum
 from numpy.random import random,randint
 from itertools import cycle
 
@@ -169,6 +169,7 @@ class MyROI(ROI):
         self.addScaleHandle([1,0],[0,1])
         color = randint(0,256,3)
         self.pen = fn.mkPen(color, width=1.66)
+        self.snip_pen = fn.mkPen(color, width=.66)
         self.setPen(self.pen)
 
     def calc(self):
@@ -185,8 +186,9 @@ class MyROI(ROI):
         if self.spectra_plot.normalized_roi == True:
             res = 1000.0 / z.max()
 
-        #self.z = (z-z.min()) * res
         self.z = z * res
+
+        self.snip_z = self.snip()
 
         return self.z
 
@@ -201,14 +203,26 @@ class MyROI(ROI):
         self.calc()
         self.redraw()
 
+    def snip(self):
+        x = self.z.copy().astype(float)
+        for p in range(1,self.spectra_plot.snip_m)[::-1]:
+            a1 = x[p:-p]
+            a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
+            x[p:-p] = minimum(a2,a1)
+
+        return x
+
     def redraw(self):
         self.spectra_plot.clear()
         for roi in self.image_plot.roi_list:
             #self.spectra_plot.plot(roi.z,pen=roi.pen)
             if self.spectra_plot.calibration == True:
                 self.spectra_plot.plot(roi.data.cx,roi.z,pen=roi.pen)
+            elif self.spectra_plot.subtract_snip == True:
+                self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
             else:
                 self.spectra_plot.plot(roi.z,pen=roi.pen)
+                self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
 
         if self.spectra_plot.calibration == True:
             self.spectra_plot.setLabel('bottom',text='Angle')
@@ -308,7 +322,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.vb.main = self
 
         self.spectra_plot.normalized_roi = True
-        self.spectra_plot.calibration = True
+        self.spectra_plot.calibration = False
+        self.spectra_plot.subtract_snip = False
+
+        self.spectra_plot.snip_m = 16
 
         #self.spectra_plot.setXRange(0,1280,padding=0)
         self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
@@ -470,6 +487,26 @@ class MainWindow(QtWidgets.QMainWindow):
         if event.key() == QtCore.Qt.Key.Key_X:
             self.speed = next(self.speed_cycle)
             print('Shift speed:',self.speed)
+
+        if event.key() == QtCore.Qt.Key.Key_W:
+            self.spectra_plot.snip_m += 1
+            self.redrawROI()
+
+        if event.key() == QtCore.Qt.Key.Key_E:
+            self.spectra_plot.snip_m -= 1
+            self.redrawROI()
+
+        if event.key() == QtCore.Qt.Key.Key_S:
+            if self.spectra_plot.subtract_snip == True:
+                print('Subtract snip off')
+                self.spectra_plot.subtract_snip = False
+                self.spectra_plot.setXRange(0,1280,padding=0)
+            else:
+                print('Subtract snip on')
+                self.spectra_plot.subtract_snip = True
+                self.spectra_plot.setXRange(0,1280,padding=0)
+
+            self.redrawROI()
 
         if event.key() == QtCore.Qt.Key.Key_C:
             if self.spectra_plot.calibration == True:

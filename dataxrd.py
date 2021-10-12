@@ -197,6 +197,9 @@ class DataXRD():
             f.create_dataset('reshaped',data = self.reshaped)
             f.create_dataset('source',data = self.source)
 
+            f.create_dataset('pymca',data = swapaxes(self.inverted,0,2))
+            f.create_dataset('pymca2',data = swapaxes(self.source,0,1))
+
         return self
 
     def load_h5(self,name = None):
