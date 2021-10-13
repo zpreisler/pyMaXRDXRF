@@ -6,9 +6,11 @@ from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
 from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout
 from pyqtgraph.Qt import QtCore,QtWidgets,QtGui
 
-from numpy import uint8,array,asarray,stack,savetxt,c_,pad,where,minimum
+from numpy import uint8,array,asarray,stack,savetxt,c_,pad,where,minimum,sqrt
 from numpy.random import random,randint
 from itertools import cycle
+
+from scipy import signal
 
 from matplotlib.image import imsave
 
@@ -170,6 +172,7 @@ class MyROI(ROI):
         color = randint(0,256,3)
         self.pen = fn.mkPen(color, width=1.66)
         self.snip_pen = fn.mkPen(color, width=.66)
+        self.conv_pen = fn.mkPen((0,0,0), width=1)
         self.setPen(self.pen)
 
     def calc(self):
@@ -179,9 +182,13 @@ class MyROI(ROI):
         s1,s2 = y[0][0],y[0][1]
         z = self.data.inverted[s1,s2]
 
+
         res = 1 / (z.shape[0] * z.shape[1])
 
         z = z.sum(axis=0).sum(axis=0)
+
+        conv = self.data.conv[s1,s2]
+        self.conv = conv.sum(axis=0).sum(axis=0) * res
 
         if self.spectra_plot.normalized_roi == True:
             res = 1000.0 / z.max()
@@ -204,7 +211,25 @@ class MyROI(ROI):
         self.redraw()
 
     def snip(self):
-        x = self.z.copy().astype(float)
+        #x = self.z.copy().astype(float)
+
+        #n = 24 
+        #y = pad(x,(n,n),'edge')
+        #win = signal.windows.gaussian(n*2,sqrt(8.1))
+        #x = signal.convolve(y,win/sum(win), mode='valid')
+        #x = x[:-1]
+
+        #sigma = (self.z.astype(float) - x).std()
+
+        #win = signal.windows.gaussian(n*2,sigma)
+        #x = signal.convolve(y,win/sum(win), mode='valid')
+        #x = x[:-1]
+        #print(sigma)
+
+        #self.conv_z = x.copy()
+        self.conv_z = self.conv.copy()
+        x = self.conv.copy()
+
         for p in range(1,self.spectra_plot.snip_m)[::-1]:
             a1 = x[p:-p]
             a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
@@ -223,6 +248,7 @@ class MyROI(ROI):
             else:
                 self.spectra_plot.plot(roi.z,pen=roi.pen)
                 self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
+                self.spectra_plot.plot(roi.conv_z,pen=roi.conv_pen)
 
         if self.spectra_plot.calibration == True:
             self.spectra_plot.setLabel('bottom',text='Angle')
@@ -281,7 +307,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.addItem(self.img)
         self.image_plot.setTitle('Image')
 
-        self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
+        #self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
+        self.image = self.data.snip_spectra()
         #self.image = ((self.data.integrated_spectra-self.data.integrated_spectra.min()) / (self.data.integrated_spectra.max()-self.data.integrated_spectra.min()) * 255).astype(uint8)
         self.img.setImage(self.image)
 
@@ -308,9 +335,16 @@ class MainWindow(QtWidgets.QMainWindow):
         z = self.data.inverted
         res = z.shape[0] * z.shape[1]
         z = z.sum(axis=0).sum(axis=0) / res
+        z = z - z.min()
 
         #self.intensity_plot.plot(self.data.cx,z,pen=fn.mkPen((255,166,166), width=1.666))
         self.intensity_plot.plot(z,pen=fn.mkPen((255,166,166), width=1.666))
+
+        z = self.data.inverted - self.data.snip(self.data.inverted)
+        res = z.shape[0] * z.shape[1]
+        z = z.sum(axis=0).sum(axis=0) / res
+        z = z - z.min()
+        self.intensity_plot.plot(z,pen=fn.mkPen((166,255,166), width=1.666))
 
         """
         Spectra 2
@@ -325,7 +359,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spectra_plot.calibration = False
         self.spectra_plot.subtract_snip = False
 
-        self.spectra_plot.snip_m = 16
+        self.spectra_plot.snip_m = 20
 
         #self.spectra_plot.setXRange(0,1280,padding=0)
         self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
@@ -490,10 +524,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if event.key() == QtCore.Qt.Key.Key_W:
             self.spectra_plot.snip_m += 1
+            print('Snip:',self.spectra_plot.snip_m)
             self.redrawROI()
 
         if event.key() == QtCore.Qt.Key.Key_E:
             self.spectra_plot.snip_m -= 1
+            print('Snip:',self.spectra_plot.snip_m)
             self.redrawROI()
 
         if event.key() == QtCore.Qt.Key.Key_S:

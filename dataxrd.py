@@ -1,6 +1,8 @@
-from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll
+from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
+from scipy.stats import kurtosis
+from numpy import fft
 
 from glob import glob
 import re
@@ -29,7 +31,7 @@ class DataXRD():
             print('Calibration data:',self.calib_data)
 
     @staticmethod
-    def fce_second(x,a,b,c,d):
+    def fce_third(x,a,b,c,d):
         return a * x**3 + b * x**2 + c * x +d 
 
     @staticmethod
@@ -123,12 +125,27 @@ class DataXRD():
 
         self.source = array(z)[::-1]
 
+    def snip(self,y,m = 21):
+
+        x = y.copy().astype(float)
+        for p in range(1,m)[::-1]:
+            a1 = x[p:-p]
+            a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
+            x[p:-p] = minimum(a2,a1)
+
+        return x
+
     def reshape_source(self):
         self.reshaped = self.source.reshape(self.params['y'],self.params['x'],-1)
         self.shape = self.reshaped.shape
 
     def invert_reshaped(self):
         self.inverted = self.invert(self.reshaped)
+
+    def snip_spectra(self):
+        x = self.inverted - self.snip(self.inverted)
+        x = x.sum(axis = 2)
+        return x
 
     @property
     def all_spectra(self):
@@ -197,9 +214,6 @@ class DataXRD():
             f.create_dataset('reshaped',data = self.reshaped)
             f.create_dataset('source',data = self.source)
 
-            f.create_dataset('pymca',data = swapaxes(self.inverted,0,2))
-            f.create_dataset('pymca2',data = swapaxes(self.source,0,1))
-
         return self
 
     def load_h5(self,name = None):
@@ -220,19 +234,64 @@ class DataXRD():
             x = f['source']
             self.source = x[:]
 
+
         return self
+
+    def convolve(self,data,off = 48):
+
+        win = signal.windows.gaussian(off * 2 - 1 ,3) 
+
+        pad_data = pad(data,((0,0),(0,0),(off,off)),'edge')
+
+        f = fft.rfft(pad_data)
+        w = fft.rfft(win,pad_data.shape[-1])
+        x = fft.irfft(f * w)
+
+        x = x[:,:,off*2-1:-1]
+        x = x / sum(win)
+
+        for i in range(2):
+            d = data - x
+
+            c1 = []
+            for i in range(d.shape[0]):
+                c2 = []
+                for j in range(d.shape[1]):
+                    k = kurtosis(d[i,j])
+                    if k < 2:
+                        sigma = sqrt(d[i,j].std())
+                        _w = signal.windows.gaussian(off * 2 - 1 ,sigma)
+                    else:
+                        _w = signal.windows.exponential(off * 2 - 1 ,tau = 1)
+                    c2 += [_w]
+                c1 += [array(c2)]
+
+            win = array(c1)
+            
+            w = fft.rfft(win,pad_data.shape[-1])
+            x = fft.irfft(f * w)
+
+            x = x[:,:,off*2-1:-1]
+            sum_win = expand_dims(win.sum(axis=2),2)
+            x = x / sum_win
+
+        return x
 
     def shiftz(self):
 
         off = 24 
-        win = signal.windows.hann(9)
+        win = signal.windows.gaussian(off*2,sqrt(8.1))
 
         b = []
         for x,_x in enumerate(self.inverted):
             a = []
             for y,_y in enumerate(_x):
                 select = _y[555 - off : 555 + off].copy()
-                filtered = signal.convolve(select, win, mode='same') / sum(win)
+
+                y = pad(select,(off,off),'edge')
+                filtered = signal.convolve(y, win, mode='valid') / sum(win)
+                filtered = filtered[:-1]
+
                 f = filtered.argmax() - off
 
                 if f > -off and f < off:
@@ -244,20 +303,14 @@ class DataXRD():
 
         self.inverted = array(b)
 
+        self.conv = self.convolve(self.inverted)
+
     @staticmethod
     def pad_left(x,n):
         y_odd = pad(x,((0,0),(n,0),(0,0)))
         y_even = pad(x,((0,0),(0,n),(0,0)))
         y_odd[::2,:,:] = y_even[::2,:,:]
         return y_odd
-
-    @staticmethod
-    def pad_xleft(x,n):
-        #y_odd = pad(x,((0,0),(0,0),(n,0)))
-        #y_even = pad(x,((0,0),(0,0),(0,n)))
-        #y_odd[:,:,::2] = y_even[:,:,::2]
-        x[::2,:,:] = roll(x[::2,:,:],n,axis=2)
-        return x
 
     @staticmethod
     def pad_right(x,n):
@@ -272,9 +325,6 @@ class DataXRD():
         elif n > 0:
             self.inverted = self.pad_left(self.inverted,n)
             self.reshaped = self.pad_left(self.reshaped,n)
-
-            #self.inverted = self.pad_xleft(self.inverted,-4)
-            #self.reshaped = self.pad_xleft(self.reshaped,-4)
 
         elif n < 0:
             n = -n
