@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from dataxrd import DataXRD 
+from src.xrd_data import DataXRD 
 from pyqtgraph import exec as exec_
 from pyqtgraph import functions as fn
 from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
@@ -128,6 +128,7 @@ class MyViewBox(ViewBox):
         self.roiBox.setTransform(transform)
         self.roiBox.show()
 
+
     def mouseDragEvent(self, event):
 
         event.accept()
@@ -148,7 +149,9 @@ class MyViewBox(ViewBox):
                 w = abs(x[0] - x[1])
                 h = abs(y[0] - y[1])
 
-                roi = MyROI([x0,y0],[w,h])
+                roi = MyROI([x0,y0],[w,h],translateSnap = True,scaleSnap = True)
+                
+                print('new roi:',[x0,y0],[w,h])
 
                 self.image_plot.addItem(roi)
                 self.image_plot.roi_list += [roi]
@@ -181,6 +184,7 @@ class MyROI(ROI):
 
         s1,s2 = y[0][0],y[0][1]
         z = self.data.inverted[s1,s2]
+        print('[x:%d y:%d]'%(s2.start,s1.stop),'[x:%d y:%d]'%(s2.stop,s1.start))
 
 
         res = 1 / (z.shape[0] * z.shape[1])
@@ -372,7 +376,10 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Init ROI
         """
-        roi = MyROI([32,32],[12,12])
+
+        print(self.image_plot.sceneBoundingRect())
+
+        roi = MyROI([32,32],[12,12],translateSnap = True, scaleSnap = True,maxBounds = QtCore.QRectF(0,0,self.image.shape[1],self.image.shape[0]))
 
         roi.image_plot = self.image_plot
         roi.spectra_plot = self.spectra_plot
@@ -381,6 +388,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.image_plot.addItem(roi)
         self.image_plot.roi_list += [roi]
+
 
         roi.roi_update()
         roi.sigRegionChanged.connect(roi.roi_update)
@@ -621,7 +629,7 @@ def main():
     parser.add_argument('-c','--calibration',default='calibration.ini',help='calibration file')
     parser.add_argument('-s','--shift',default=0,help='shift correction',type=int)
     parser.add_argument('-l','--load',action='store_true')
-    parser.add_argument('-z','--shiftz',action='store_true')
+    parser.add_argument('-z','--shift-z',default = 555)
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -634,7 +642,7 @@ def main():
 
     load = kwargs.pop('load')
     shift = kwargs.pop('shift')
-    shiftz = kwargs.pop('shiftz')
+    shift_z = kwargs.pop('shift_z')
 
     if load is False:
         data = DataXRD(**kwargs).from_source()
@@ -645,8 +653,8 @@ def main():
         data = DataXRD(**kwargs).load_h5()
         data.shift(shift)
 
-        if shiftz:
-            data.shiftz()
+        if shift_z != 0:
+            data.shift_z()
 
     data.read_calibration_file()
     data.calibrate_channels()

@@ -125,9 +125,10 @@ class DataXRD():
 
         self.source = array(z)[::-1]
 
-    def snip(self,y,m = 21):
+    def snip(self,y,m = 24):
 
-        x = y.copy().astype(float)
+        #x = y.copy().astype(float)
+        x = y.astype(float)
         for p in range(1,m)[::-1]:
             a1 = x[p:-p]
             a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
@@ -240,7 +241,6 @@ class DataXRD():
     def convolve(self,data,off = 48):
 
         win = signal.windows.gaussian(off * 2 - 1 ,3) 
-
         pad_data = pad(data,((0,0),(0,0),(off,off)),'edge')
 
         f = fft.rfft(pad_data)
@@ -277,7 +277,7 @@ class DataXRD():
 
         return x
 
-    def shiftz(self):
+    def shift_z(self):
 
         off = 24 
         win = signal.windows.gaussian(off*2,sqrt(8.1))
