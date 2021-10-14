@@ -20,11 +20,15 @@ class MyROI(ROI):
         self.setPen(self.pen)
 
     def calc(self):
+        """
+        FIXME
+        """
 
         y = self.getArraySlice(self.data.integrated_spectra,self.img)
 
         s1,s2 = y[0][0],y[0][1]
         z = self.data.inverted[s1,s2]
+        print('roi shape:',z.shape)
         print('[x:%d y:%d]'%(s2.start,s1.stop),'[x:%d y:%d]'%(s2.stop,s1.start))
 
 
@@ -32,7 +36,7 @@ class MyROI(ROI):
 
         z = z.sum(axis=0).sum(axis=0)
 
-        conv = self.data.conv[s1,s2]
+        conv = self.data.convolve[s1,s2]
         self.conv = conv.sum(axis=0).sum(axis=0) * res
 
         if self.spectra_plot.normalized_roi == True:

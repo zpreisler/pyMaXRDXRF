@@ -170,6 +170,7 @@ class DataXRD():
             self.__integrated_spectra = self.inverted.sum(axis = 2)
             return self.__integrated_spectra
 
+
     def save_h5(self,name = None):
 
         if name == None:
@@ -193,62 +194,12 @@ class DataXRD():
             self.inverted = x[:]
             self.shape = self.inverted.shape
 
+            self.convolve = Preprocessing.convolve(self.inverted)
+
         return self
 
-    def convolve(self,data,off = 48):
-
-        def select(d):
-            c1 = []
-            for i in range(d.shape[0]):
-                c2 = []
-                for j in range(d.shape[1]):
-                    k = kurtosis(d[i,j])
-                    if k < 2:
-                        sigma = sqrt(d[i,j].std())
-                        _w = signal.windows.gaussian(off * 2 - 1 ,sigma)
-                    else:
-                        _w = signal.windows.exponential(off * 2 - 1 ,tau = 1)
-                    c2 += [_w]
-                c1 += [array(c2)]
-
-            return array(c1)
-
-        win = signal.windows.gaussian(off * 2 - 1 ,3) 
-        pad_data = pad(data,((0,0),(0,0),(off,off)),'edge')
-
-        f = fft.rfft(pad_data)
-        w = fft.rfft(win,pad_data.shape[-1])
-        x = fft.irfft(f * w)
-
-        x = x[:,:,off*2-1:-1]
-        x = x / sum(win)
-
-        for i in range(2):
-            d = data - x
-            win = select(d)
-
-            #c1 = []
-            #for i in range(d.shape[0]):
-            #    c2 = []
-            #    for j in range(d.shape[1]):
-            #        k = kurtosis(d[i,j])
-            #        if k < 2:
-            #            sigma = sqrt(d[i,j].std())
-            #            _w = signal.windows.gaussian(off * 2 - 1 ,sigma)
-            #        else:
-            #            _w = signal.windows.exponential(off * 2 - 1 ,tau = 1)
-            #        c2 += [_w]
-            #    c1 += [array(c2)]
-            #win = array(c1)
-            
-            w = fft.rfft(win,pad_data.shape[-1])
-            x = fft.irfft(f * w)
-
-            x = x[:,:,off*2-1:-1]
-            sum_win = expand_dims(win.sum(axis=2),2)
-            x = x / sum_win
-
-        return x
+    def shift_y(self,n):
+        return Preprocessing.shift_y(self.inverted,n)
 
     def shift_z(self):
 
@@ -276,27 +227,72 @@ class DataXRD():
 
         self.inverted = array(b)
 
-        self.conv = self.convolve(self.inverted)
+class Preprocessing():
 
-    @staticmethod
-    def pad_left(x,n):
-        y_odd = pad(x,((0,0),(n,0),(0,0)))
-        y_even = pad(x,((0,0),(0,n),(0,0)))
-        y_odd[::2,:,:] = y_even[::2,:,:]
-        return y_odd
+    def convolve(data,off = 48):
+        """
+        FIXME
 
-    @staticmethod
-    def pad_right(x,n):
-        y_odd = pad(x,((0,0),(-n,0),(0,0)))
-        y_even = pad(x,((0,0),(0,-n),(0,0)))
-        y_odd[1::2,:,:] = y_even[1::2,:,:]
-        return y_odd
+        The gaussian convolution is only good for gaussian peaks i.e. low noise/signal ration
+        """
 
-    def shift(self,n):
+        def select(d,off):
+            c1 = []
+            for i in range(d.shape[0]):
+                c2 = []
+                for j in range(d.shape[1]):
+                    k = kurtosis(d[i,j])
+                    if k < 2:
+                        sigma = sqrt(d[i,j].std())
+                        _w = signal.windows.gaussian(off * 2 - 1 ,sigma)
+                    else:
+                        _w = signal.windows.exponential(off * 2 - 1 ,tau = 1)
+                    c2 += [_w]
+                c1 += [array(c2)]
+
+            return array(c1)
+
+        win = signal.windows.gaussian(off * 2 - 1 ,3) 
+        pad_data = pad(data,((0,0),(0,0),(off,off)),'edge')
+
+        f = fft.rfft(pad_data)
+        w = fft.rfft(win,pad_data.shape[-1])
+        x = fft.irfft(f * w)
+
+        x = x[:,:,off*2-1:-1]
+        x = x / sum(win)
+
+        for i in range(2):
+            d = data - x
+            win = select(d,off)
+   
+            w = fft.rfft(win,pad_data.shape[-1])
+            x = fft.irfft(f * w)
+
+            x = x[:,:,off*2-1:-1]
+            sum_win = expand_dims(win.sum(axis=2),2)
+            x = x / sum_win
+
+        return x
+
+    def shift_y(data,n):
+
+        def pad_left(x,n):
+            y_odd = pad(x,((0,0),(n,0),(0,0)))
+            y_even = pad(x,((0,0),(0,n),(0,0)))
+            y_odd[::2,:,:] = y_even[::2,:,:]
+            return y_odd
+
+        def pad_right(x,n):
+            y_odd = pad(x,((0,0),(-n,0),(0,0)))
+            y_even = pad(x,((0,0),(0,-n),(0,0)))
+            y_odd[1::2,:,:] = y_even[1::2,:,:]
+            return y_odd
+
         if n == 0:
-            return
+            return data
         elif n > 0:
-            self.inverted = self.pad_left(self.inverted,n)
+            return pad_left(data,n)
         elif n < 0:
-            self.inverted = self.pad_right(self.inverted,n)
+            return pad_right(data,n)
 

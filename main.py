@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from src.xrd_data import DataXRD 
+from src.xrd_data import DataXRD,Preprocessing
 from src.roi import MyROI
 from src.mainwindow import MainWindow
 
@@ -28,7 +28,7 @@ def main():
     parser.add_argument('path')
     parser.add_argument('--parameters',default='Scanning_Parameters.txt',help='scanning parameters file')
     parser.add_argument('-c','--calibration',default='calibration.ini',help='calibration file')
-    parser.add_argument('-s','--shift',default=0,help='shift correction',type=int)
+    parser.add_argument('-s','--shift-y',default=0,help='shift correction',type=int)
     parser.add_argument('-l','--load',action='store_true')
     parser.add_argument('-z','--shift-z',default = 555,type=int)
 
@@ -42,29 +42,28 @@ def main():
     """
 
     load = kwargs.pop('load')
-    shift = kwargs.pop('shift')
+    shift_y = kwargs.pop('shift_y')
     shift_z = kwargs.pop('shift_z')
 
     if load is False:
         data = DataXRD(**kwargs).from_source()
         data.save_h5()
-        data.shift(shift)
+        data.inverted = data.shift_y(shift_y)
 
-        if shift_z != 0:
-            data.shift_z()
+        #if shift_z != 0:
+        #    data.shift_z()
 
     else:
         data = DataXRD(**kwargs).load_h5()
-        data.shift(shift)
+        data.inverted = data.shift_y(shift_y)
 
-        if shift_z != 0:
-            data.shift_z()
+        #if shift_z != 0:
+        #    data.shift_z()
 
     data.calibrate()
     #data.read_calibration_file()
     #data.calibrate_channels()
 
-    print(data)
     """
     Open window
     """
