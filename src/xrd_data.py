@@ -104,7 +104,6 @@ class DataXRD():
         numpy array
             3 dimmensional array x,y,spectra
         """
-
         z = []
         for file in names:
 
@@ -121,27 +120,39 @@ class DataXRD():
     def calibrate(self):
         self.calibration = Calibration(self.path + '/' + self.calibration,self)
 
-    #def snip(self,y,m = 24):
-
-    #    x = y.astype(float)
-    #    for p in range(1,m)[::-1]:
-    #        a1 = x[p:-p]
-    #        a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
-    #        x[p:-p] = minimum(a2,a1)
-
-    #    return x
-
-    def reshape_source(self):
+    def reshape(self):
         self.reshaped = self.source.reshape(self.params['y'],self.params['x'],-1)
         self.shape = self.reshaped.shape
 
-    def invert_reshaped(self):
-        self.inverted = self.invert(self.reshaped)
+    def invert(self):
+        def invert(z):
+            """
+            Invert every second row
+            """
+            s = 1
+            x = []
+            for v in z:
+                if s == 1:
+                    x += [v]
+                else:
+                    x += [v[::-1]]
+                s *= -1
 
-    #def snip_spectra(self):
-    #    x = self.inverted - self.snip(self.inverted)
-    #    x = x.sum(axis = 2)
-    #    return x
+            return array(x)
+
+        self.inverted = invert(self.reshaped)
+
+    def from_source(self):
+        """
+        Read data from source
+        """
+        self.read_params()
+        self.read_xrd()
+
+        self.reshape()
+        self.invert()
+
+        return self
 
     @property
     def all_spectra(self):
@@ -153,50 +164,11 @@ class DataXRD():
 
     @property
     def integrated_spectra(self):
-        if hasattr(self,'__all_spectra'):
+        if hasattr(self,'__integrated_spectra'):
             return self.__integrated_spectra
         else:
             self.__integrated_spectra = self.inverted.sum(axis = 2)
             return self.__integrated_spectra
-
-    @staticmethod
-    def invert(z):
-        """
-        Invert every second row
-
-        Parameters
-        ---------
-        z: numpy array
-            3d numpy array
-
-        Returns
-        -------
-        numpy array
-            3 dimmensional array x,y,spectra
-        """
-
-        s = 1
-        x = []
-        for v in z:
-            if s == 1:
-                x += [v]
-            else:
-                x += [v[::-1]]
-            s *= -1
-
-        return array(x)
-
-    def from_source(self):
-        """
-        Read data from source
-        """
-        
-        self.read_params()
-        self.read_xrd()
-        self.reshape_source()
-        self.invert_reshaped()
-
-        return self
 
     def save_h5(self,name = None):
 
@@ -204,11 +176,8 @@ class DataXRD():
             name = self.path + '/' + 'data.h5'
 
         print('Saving:',name)
-
         with h5py.File(name,'w') as f:
             f.create_dataset('inverted',data = self.inverted)
-            f.create_dataset('reshaped',data = self.reshaped)
-            f.create_dataset('source',data = self.source)
 
         return self
 
@@ -222,32 +191,13 @@ class DataXRD():
         with h5py.File(name,'r') as f:
             x = f['inverted']
             self.inverted = x[:]
-
-            x = f['reshaped']
-            self.reshaped = x[:]
-            self.shape = self.reshaped.shape
-
-            x = f['source']
-            self.source = x[:]
-
+            self.shape = self.inverted.shape
 
         return self
 
     def convolve(self,data,off = 48):
 
-        win = signal.windows.gaussian(off * 2 - 1 ,3) 
-        pad_data = pad(data,((0,0),(0,0),(off,off)),'edge')
-
-        f = fft.rfft(pad_data)
-        w = fft.rfft(win,pad_data.shape[-1])
-        x = fft.irfft(f * w)
-
-        x = x[:,:,off*2-1:-1]
-        x = x / sum(win)
-
-        for i in range(2):
-            d = data - x
-
+        def select(d):
             c1 = []
             for i in range(d.shape[0]):
                 c2 = []
@@ -261,7 +211,35 @@ class DataXRD():
                     c2 += [_w]
                 c1 += [array(c2)]
 
-            win = array(c1)
+            return array(c1)
+
+        win = signal.windows.gaussian(off * 2 - 1 ,3) 
+        pad_data = pad(data,((0,0),(0,0),(off,off)),'edge')
+
+        f = fft.rfft(pad_data)
+        w = fft.rfft(win,pad_data.shape[-1])
+        x = fft.irfft(f * w)
+
+        x = x[:,:,off*2-1:-1]
+        x = x / sum(win)
+
+        for i in range(2):
+            d = data - x
+            win = select(d)
+
+            #c1 = []
+            #for i in range(d.shape[0]):
+            #    c2 = []
+            #    for j in range(d.shape[1]):
+            #        k = kurtosis(d[i,j])
+            #        if k < 2:
+            #            sigma = sqrt(d[i,j].std())
+            #            _w = signal.windows.gaussian(off * 2 - 1 ,sigma)
+            #        else:
+            #            _w = signal.windows.exponential(off * 2 - 1 ,tau = 1)
+            #        c2 += [_w]
+            #    c1 += [array(c2)]
+            #win = array(c1)
             
             w = fft.rfft(win,pad_data.shape[-1])
             x = fft.irfft(f * w)
@@ -319,8 +297,6 @@ class DataXRD():
             return
         elif n > 0:
             self.inverted = self.pad_left(self.inverted,n)
-            self.reshaped = self.pad_left(self.reshaped,n)
         elif n < 0:
             self.inverted = self.pad_right(self.inverted,n)
-            self.reshaped = self.pad_right(self.reshaped,n)
 
