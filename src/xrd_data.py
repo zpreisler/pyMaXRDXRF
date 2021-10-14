@@ -9,6 +9,36 @@ import re
 import h5py
 from scipy import signal
 
+class Calibration():
+    """
+    Channels Calibration Class.
+    """
+    def __init__(self,name,parent=None):
+
+        self.data = array([[1,2,3],[1,2,3]])
+
+        try:
+            self.data = loadtxt(name,unpack=True)
+            print('Calibration data:',self.data)
+
+        except:
+            print(name,'is missing.')
+            print('Calibration data:',self.data)
+
+        self.calibrate()
+
+    def calibrate(self):
+        def fce_second(x,a,b,c):
+            return a * x**2 + b * x + c 
+
+        x,y = self.data
+        self.opt,self.opt_var = curve_fit(fce_second,x,y)
+
+        print('Calibrated data:',self.opt)
+
+        self.c0 = arange(0,1280)
+        self.cx = fce_second(self.c0,*self.opt)
+
 class DataXRD():
     """
     Class for processing XRD data.
@@ -17,41 +47,6 @@ class DataXRD():
         self.path = path
         self.parameters = parameters
         self.calibration = calibration
-
-    def read_calibration_file(self,name=None):
-        if name == None:
-            name = self.path + '/' + self.calibration
-
-        try:
-            self.calib_data = loadtxt(name,unpack=True)
-            print('Calibration data:',self.calib_data)
-        except:
-            self.calib_data = array([[1,2,3],[1,2,3]])
-            print(name,'is missing.')
-            print('Calibration data:',self.calib_data)
-
-    @staticmethod
-    def fce_third(x,a,b,c,d):
-        return a * x**3 + b * x**2 + c * x +d 
-
-    @staticmethod
-    def fce_second(x,a,b,c):
-        return a * x**2 + b * x + c 
-
-    @staticmethod
-    def fce_linear(x,a,b):
-        return a * x + b 
-
-    def calibrate_channels(self):
-        x,y = self.calib_data
-        self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
-
-        print('Calibrated data:',self.opt)
-
-        print(len(x),len(y))
-        print('Shape:',self.inverted.shape)
-        self.c0 = arange(0,1280)
-        self.cx = self.fce_second(self.c0,*self.opt)
 
     def read_params(self,name=None):
         """
@@ -92,12 +87,10 @@ class DataXRD():
         names = sorted(glob(self.path + '/[F,f]rame*.dat'), key=lambda x: int(re.sub('\D','',x)))
 
         print("Reading data")
-
-        self.__read_xrd__(names)
-
+        self.__read_xrd(names)
         print("Done")
 
-    def __read_xrd__(self,names):
+    def __read_xrd(self,names):
         """
         Reads the source data.
 
@@ -125,16 +118,18 @@ class DataXRD():
 
         self.source = array(z)[::-1]
 
-    def snip(self,y,m = 24):
+    def calibrate(self):
+        self.calibration = Calibration(self.path + '/' + self.calibration,self)
 
-        #x = y.copy().astype(float)
-        x = y.astype(float)
-        for p in range(1,m)[::-1]:
-            a1 = x[p:-p]
-            a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
-            x[p:-p] = minimum(a2,a1)
+    #def snip(self,y,m = 24):
 
-        return x
+    #    x = y.astype(float)
+    #    for p in range(1,m)[::-1]:
+    #        a1 = x[p:-p]
+    #        a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
+    #        x[p:-p] = minimum(a2,a1)
+
+    #    return x
 
     def reshape_source(self):
         self.reshaped = self.source.reshape(self.params['y'],self.params['x'],-1)
@@ -143,10 +138,10 @@ class DataXRD():
     def invert_reshaped(self):
         self.inverted = self.invert(self.reshaped)
 
-    def snip_spectra(self):
-        x = self.inverted - self.snip(self.inverted)
-        x = x.sum(axis = 2)
-        return x
+    #def snip_spectra(self):
+    #    x = self.inverted - self.snip(self.inverted)
+    #    x = x.sum(axis = 2)
+    #    return x
 
     @property
     def all_spectra(self):
@@ -314,8 +309,8 @@ class DataXRD():
 
     @staticmethod
     def pad_right(x,n):
-        y_odd = pad(x,((0,0),(n,0),(0,0)))
-        y_even = pad(x,((0,0),(0,n),(0,0)))
+        y_odd = pad(x,((0,0),(-n,0),(0,0)))
+        y_even = pad(x,((0,0),(0,-n),(0,0)))
         y_odd[1::2,:,:] = y_even[1::2,:,:]
         return y_odd
 
@@ -325,9 +320,7 @@ class DataXRD():
         elif n > 0:
             self.inverted = self.pad_left(self.inverted,n)
             self.reshaped = self.pad_left(self.reshaped,n)
-
         elif n < 0:
-            n = -n
             self.inverted = self.pad_right(self.inverted,n)
             self.reshaped = self.pad_right(self.reshaped,n)
 

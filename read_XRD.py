@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from dataxrd import DataXRD 
+from src.xrd_data import DataXRD,Calibration
 from glob import glob
 from matplotlib.pyplot import show,imshow,plot,figure,xlim
 
@@ -13,7 +13,7 @@ def main():
     parser.add_argument('path')
     parser.add_argument('--parameters',default='Scanning_Parameters.txt',help='scanning parameters file')
     parser.add_argument('-l','--load',action='store_true')
-    parser.add_argument('-n','--name',default='x.h5')
+    parser.add_argument('-n','--name',default=None)
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -31,6 +31,10 @@ def main():
 
     else:
         d = DataXRD(**kwargs).load_h5()
+
+    name = args.path + '/' + 'Calibration.ini'
+    calibration = Calibration(name)
+    calibration.calibrate_channels()
 
     figure()
     imshow(d.inverted[:,:,725])

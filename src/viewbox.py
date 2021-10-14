@@ -1,5 +1,5 @@
 #from src.xrd_data import DataXRD 
-#from src.roi import MyROI
+from src.roi import MyROI
 #from src.mainwindow import MainWindow
 
 from pyqtgraph import exec as exec_

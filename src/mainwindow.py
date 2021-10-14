@@ -51,8 +51,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.addItem(self.img)
         self.image_plot.setTitle('Image')
 
-        #self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
-        self.image = self.data.snip_spectra()
+        self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
+        #self.image = self.data.snip_spectra()
         #self.image = ((self.data.integrated_spectra-self.data.integrated_spectra.min()) / (self.data.integrated_spectra.max()-self.data.integrated_spectra.min()) * 255).astype(uint8)
         self.img.setImage(self.image)
 
@@ -67,7 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Spectra 1
         """
         self.layout.nextRow()
-        self.intensity_plot = self.layout.addSpectraPlot(viewBox = MySpectraViewBox(name='intensity_plot',title='Full Intensity'))
+        self.intensity_plot = self.layout.addSpectraPlot(name='intensity',viewBox = MySpectraViewBox(name='intensity_plot',title='Full Intensity'))
 
         #self.intensity_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
         self.intensity_plot.setXRange(0,1280,padding=0)
@@ -84,18 +84,22 @@ class MainWindow(QtWidgets.QMainWindow):
         #self.intensity_plot.plot(self.data.cx,z,pen=fn.mkPen((255,166,166), width=1.666))
         self.intensity_plot.plot(z,pen=fn.mkPen((255,166,166), width=1.666))
 
-        z = self.data.inverted - self.data.snip(self.data.inverted)
-        res = z.shape[0] * z.shape[1]
-        z = z.sum(axis=0).sum(axis=0) / res
-        z = z - z.min()
-        self.intensity_plot.plot(z,pen=fn.mkPen((166,255,166), width=1.666))
+        #z = self.data.inverted - self.data.snip(self.data.inverted)
+        #res = z.shape[0] * z.shape[1]
+        #z = z.sum(axis=0).sum(axis=0) / res
+        #z = z - z.min()
+        #self.intensity_plot.plot(z,pen=fn.mkPen((166,255,166), width=1.666))
 
         """
         Spectra 2
         """
         self.layout.nextRow()
 
-        self.spectra_plot = self.layout.addSpectraPlot(viewBox = MySpectraViewBox(name='spectra_plot',title='ROI Spectras'))
+        self.spectra_plot = self.layout.addSpectraPlot(name='roi',viewBox = MySpectraViewBox(name='spectra_plot',title='ROI Spectras'))
+
+        #self.spectra_plot.setXLink(self.intensity_plot)
+        self.spectra_plot.setXLink('intensity')
+
         self.image_plot.vb.spectra_plot = self.spectra_plot
         self.image_plot.vb.main = self
 
@@ -106,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spectra_plot.snip_m = 24
 
         #self.spectra_plot.setXRange(0,1280,padding=0)
-        self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
+        self.spectra_plot.setXRange(self.data.calibration.cx[0],self.data.calibration.cx[-1],padding=0)
 
         #self.spectra_plot.setLabel('bottom',text='Channel')
         self.spectra_plot.setLabel('bottom',text='Angle')
@@ -256,7 +260,7 @@ class MainWindow(QtWidgets.QMainWindow):
             for i,roi in enumerate(self.image_plot.roi_list):
                 name = self.data.path + '/' + 'roi_%d.dat'%i
                 print('Saving ROI spectras',name)
-                savetxt(name,c_[roi.data.cx,roi.z],fmt='%0.3f %d')
+                savetxt(name,c_[roi.data.calibration.cx,roi.z],fmt='%0.3f %d')
 
                 print('Saving ROI images',name)
                 name = self.data.path + '/' + 'roi_%d.tiff'%i
@@ -302,7 +306,7 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 print('Calibration on')
                 self.spectra_plot.calibration = True
-                self.spectra_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
+                self.spectra_plot.setXRange(self.data.calibration.cx[0],self.data.calibration.cx[-1],padding=0)
 
             self.redrawROI()
 
@@ -359,5 +363,3 @@ class MainWindow(QtWidgets.QMainWindow):
         if event.key() == QtCore.Qt.Key.Key_3:
             self.selected = self.rgb_region[2]
             print('selected: blue')
-
-

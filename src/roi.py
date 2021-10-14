@@ -71,7 +71,7 @@ class MyROI(ROI):
         for roi in self.image_plot.roi_list:
             #self.spectra_plot.plot(roi.z,pen=roi.pen)
             if self.spectra_plot.calibration == True:
-                self.spectra_plot.plot(roi.data.cx,roi.z,pen=roi.pen)
+                self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
             elif self.spectra_plot.subtract_snip == True:
                 self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
             else:
