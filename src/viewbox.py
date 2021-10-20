@@ -142,8 +142,8 @@ class MyViewBox(ViewBox):
                 x0 = min(x)
                 y0 = min(y)
 
-                w = abs(x[0] - x[1])
-                h = abs(y[0] - y[1])
+                w = abs(x[0] - x[1]) + 1
+                h = abs(y[0] - y[1]) + 1
 
                 roi = MyROI([x0,y0],[w,h],translateSnap = True,scaleSnap = True, maxBounds = QtCore.QRectF(0,0,self.main.data.inverted.shape[1],self.main.data.inverted.shape[0]))
                 

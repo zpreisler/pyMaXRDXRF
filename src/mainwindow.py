@@ -167,7 +167,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def redrawROI(self):
         for roi in self.image_plot.roi_list:
-            roi.calc()
+            roi.calculate()
         roi.redraw()
 
     def mono_update(self):
