@@ -48,21 +48,21 @@ def main():
     if load is False:
         data = DataXRD(**kwargs).from_source()
         data.save_h5()
-        data.inverted = data.shift_y(shift_y)
+
+        #data.inverted = Preprocessing.shift_y(data.inverted,shift_y)
 
         #if shift_z != 0:
         #    data.shift_z()
 
     else:
         data = DataXRD(**kwargs).load_h5()
-        data.inverted = data.shift_y(shift_y)
+        #data.inverted = data.shift_y(shift_y)
+        #data.inverted = Preprocessing.shift_y(data.inverted,shift_y)
 
         #if shift_z != 0:
         #    data.shift_z()
 
     data.calibrate()
-    #data.read_calibration_file()
-    #data.calibrate_channels()
 
     """
     Open window

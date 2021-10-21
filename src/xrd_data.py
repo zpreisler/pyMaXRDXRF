@@ -2,7 +2,7 @@ from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimu
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
 from scipy.stats import kurtosis
-from numpy import fft
+from numpy import fft,uint8
 
 from glob import glob
 import re
@@ -152,24 +152,27 @@ class DataXRD():
         self.reshape()
         self.invert()
 
+        self.convoluted = Preprocessing.convolve(self.inverted)
+
         return self
 
     @property
-    def all_spectra(self):
-        if hasattr(self,'__all_spectra'):
-            return self.__all_spectra
-        else:
-            self.__all_spectra = self.inverted.sum(axis = 0).sum(axis = 0) / (self.shape[0] * self.shape[1])
-            return self.__all_spectra
+    def avg_spectra(self):
+        #if hasattr(self,'__all_spectra'):
+        #    return self.__all_spectra
+        #else:
+        #    self.__all_spectra = self.inverted.sum(axis = 0).sum(axis = 0) / (self.shape[0] * self.shape[1])
+        #    return self.__all_spectra
+        return self.inverted.sum(axis = 0).sum(axis = 0) / (self.shape[0] * self.shape[1])
 
     @property
     def integrated_spectra(self):
-        if hasattr(self,'__integrated_spectra'):
-            return self.__integrated_spectra
-        else:
-            self.__integrated_spectra = self.inverted.sum(axis = 2)
-            return self.__integrated_spectra
+        return self.inverted.sum(axis = 2)
 
+    @property
+    def normalized_spectra(self):
+        spectra = self.integrated_spectra
+        return (spectra / spectra.max() * 255).astype(uint8)
 
     def save_h5(self,name = None):
 
@@ -179,6 +182,7 @@ class DataXRD():
         print('Saving:',name)
         with h5py.File(name,'w') as f:
             f.create_dataset('inverted',data = self.inverted)
+            f.create_dataset('convoluted',data = self.convoluted)
 
         return self
 
@@ -190,18 +194,26 @@ class DataXRD():
         print('Loading:',name)
 
         with h5py.File(name,'r') as f:
+
+            print('Load inverted')
             x = f['inverted']
             self.inverted = x[:]
             self.shape = self.inverted.shape
 
-            self.convolve = Preprocessing.convolve(self.inverted)
+            if 'convoluted' in f:
+                print('Load convoluted')
+                x = f['convoluted']
+                self.convoluted = x[:]
+            else:
+                print('Preprocess convoluted')
+                self.convoluted = Preprocessing.convolve(self.inverted)
 
         return self
 
-    def shift_y(self,n):
-        return Preprocessing.shift_y(self.inverted,n)
+    #def shift_y(self,data,n):
+    #    return Preprocessing.shift_y(data,n)
 
-    def shift_z(self):
+    def shift_z(self,channel = 555):
 
         off = 24 
         win = signal.windows.gaussian(off*2,sqrt(8.1))
@@ -210,7 +222,7 @@ class DataXRD():
         for x,_x in enumerate(self.inverted):
             a = []
             for y,_y in enumerate(_x):
-                select = _y[555 - off : 555 + off].copy()
+                select = _y[channel - off : channel + off].copy()
 
                 y = pad(select,(off,off),'edge')
                 filtered = signal.convolve(y, win, mode='valid') / sum(win)
@@ -278,14 +290,14 @@ class Preprocessing():
     def shift_y(data,n):
 
         def pad_left(x,n):
-            y_odd = pad(x,((0,0),(n,0),(0,0)))
-            y_even = pad(x,((0,0),(0,n),(0,0)))
+            y_odd = pad(x,((0,0),(n,0),(0,0)),'edge')
+            y_even = pad(x,((0,0),(0,n),(0,0)),'edge')
             y_odd[::2,:,:] = y_even[::2,:,:]
             return y_odd
 
         def pad_right(x,n):
-            y_odd = pad(x,((0,0),(-n,0),(0,0)))
-            y_even = pad(x,((0,0),(0,-n),(0,0)))
+            y_odd = pad(x,((0,0),(-n,0),(0,0)),'edge')
+            y_even = pad(x,((0,0),(0,-n),(0,0)),'edge')
             y_odd[1::2,:,:] = y_even[1::2,:,:]
             return y_odd
 

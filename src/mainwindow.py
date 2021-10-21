@@ -1,4 +1,4 @@
-from src.xrd_data import DataXRD 
+from src.xrd_data import DataXRD,Preprocessing
 from src.roi import MyROI
 from src.viewbox import MyGLW,MyViewBox,MySpectraViewBox
 
@@ -18,42 +18,26 @@ class MainWindow(QtWidgets.QMainWindow):
     """
     keyPressed = QtCore.pyqtSignal(QtCore.QEvent)
 
-    def __init__(self,data):
-        super().__init__()
-
-        self.keyPressed.connect(self.onKey)
-        self.data = data
-
-        self.mode = 0 
-        self.speed_cycle = cycle([1,2,8,16]) 
-        self.speed = 2
-        self.selected = None
-
-        setConfigOptions(background='w',antialias=True,leftButtonPan=False,imageAxisOrder='row-major')
-
-        self.resize(800,800)
-
+    def setLayout(self):
         self.layout = MyGLW(border=True)
         self.setCentralWidget(self.layout)
 
-        """
-        Image
-        """
-
-        self.image_plot = self.layout.addFancyPlot(viewBox = MyViewBox(border=[255,255,255],name='image_plot'),enableMenu=False)
         self.layout.ci.layout.setRowStretchFactor(0,3)
         self.layout.ci.layout.setRowStretchFactor(1,2)
         self.layout.ci.layout.setRowStretchFactor(2,2)
         self.layout.ci.layout.setVerticalSpacing(24)
 
+    def setImagePlot(self):
+        """
+        Image
+        """
+
+        self.image_plot = self.layout.addFancyPlot(viewBox = MyViewBox(border=[255,255,255],name='image_plot'),enableMenu=False)
         self.img = ImageItem()
 
         self.image_plot.addItem(self.img)
-        self.image_plot.setTitle('Image')
 
-        self.image = (self.data.integrated_spectra / self.data.integrated_spectra.max() * 255).astype(uint8)
-        #self.image = self.data.snip_spectra()
-        #self.image = ((self.data.integrated_spectra-self.data.integrated_spectra.min()) / (self.data.integrated_spectra.max()-self.data.integrated_spectra.min()) * 255).astype(uint8)
+        self.image = self.data.normalized_spectra
         self.img.setImage(self.image)
 
         self.data.image = self.image
@@ -62,77 +46,87 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot.setXRange(0,self.image.shape[1])
         self.image_plot.hideAxis('bottom')
         self.image_plot.hideAxis('left')
+        self.image_plot.setTitle('Image')
 
+    def setIntensityPlot(self):
         """
         Spectra 1
         """
+
         self.layout.nextRow()
         self.intensity_plot = self.layout.addSpectraPlot(name='intensity',viewBox = MySpectraViewBox(name='intensity_plot',title='Full Intensity'))
 
-        #self.intensity_plot.setXRange(self.data.cx[0],self.data.cx[-1],padding=0)
         self.intensity_plot.setXRange(0,1280,padding=0)
         self.intensity_plot.setLabel('bottom',text='Channel')
         self.intensity_plot.setLabel('left',text='Total count per pixel')
         self.intensity_plot.setTitle('Full intensity')
 
+        self.intensity_plot.plot(self.data.avg_spectra,pen=fn.mkPen((255,166,166), width=1.666))
 
-        z = self.data.inverted
-        res = z.shape[0] * z.shape[1]
-        z = z.sum(axis=0).sum(axis=0) / res
-        z = z - z.min()
-
-        #self.intensity_plot.plot(self.data.cx,z,pen=fn.mkPen((255,166,166), width=1.666))
-        self.intensity_plot.plot(z,pen=fn.mkPen((255,166,166), width=1.666))
-
-        #z = self.data.inverted - self.data.snip(self.data.inverted)
-        #res = z.shape[0] * z.shape[1]
-        #z = z.sum(axis=0).sum(axis=0) / res
-        #z = z - z.min()
-        #self.intensity_plot.plot(z,pen=fn.mkPen((166,255,166), width=1.666))
-
+    def setSpectraPlot(self):
         """
         Spectra 2
         """
         self.layout.nextRow()
-
         self.spectra_plot = self.layout.addSpectraPlot(name='roi',viewBox = MySpectraViewBox(name='spectra_plot',title='ROI Spectras'))
 
-        #self.spectra_plot.setXLink(self.intensity_plot)
-        self.spectra_plot.setXLink('intensity')
-
-        self.image_plot.vb.spectra_plot = self.spectra_plot
-        self.image_plot.vb.main = self
-
+        self.spectra_plot.snip_m = 24
         self.spectra_plot.normalized_roi = False
         self.spectra_plot.calibration = False
         self.spectra_plot.subtract_snip = False
 
-        self.spectra_plot.snip_m = 24
-
-        #self.spectra_plot.setXRange(0,1280,padding=0)
-        self.spectra_plot.setXRange(self.data.calibration.cx[0],self.data.calibration.cx[-1],padding=0)
-
-        #self.spectra_plot.setLabel('bottom',text='Channel')
-        self.spectra_plot.setLabel('bottom',text='Angle')
+        #self.spectra_plot.setLabel('bottom',text='Angle')
+        self.spectra_plot.setLabel('bottom',text='Channel')
         self.spectra_plot.setLabel('left',text='Count per pixel')
         self.spectra_plot.setTitle('ROI spectras')
+
+    def __init__(self,data):
+        super().__init__()
+
+        self.keyPressed.connect(self.onKey)
+        self.data = data
+
+        self.data._inverted = self.data.inverted
+        self.data._convoluted = self.data.convoluted
+
+        self.mode = 0 
+        self.selected = None
+        self.speed_cycle = cycle([1,2,8,16]) 
+        self.speed = 2
+        self.shift = 0
+
+        self.data.inverted  = Preprocessing.shift_y(self.data._inverted,self.shift)
+        self.data.convoluted  = Preprocessing.shift_y(self.data._convoluted,self.shift)
+
+        setConfigOptions(background='w',antialias=True,leftButtonPan=False,imageAxisOrder='row-major')
+
+        self.resize(800,800)
+        self.setLayout()
+
+        self.setImagePlot()
+        self.setIntensityPlot()
+        self.setSpectraPlot()
+
+        self.image_plot.vb.spectra_plot = self.spectra_plot
+        self.image_plot.vb.intensity_plot = self.intensity_plot
+        self.image_plot.vb.main = self
+
+        self.spectra_plot.setXLink(self.intensity_plot)
 
         """
         Init ROI
         """
 
-        print(self.image_plot.sceneBoundingRect())
-
         roi = MyROI([32,32],[12,12],translateSnap = True, scaleSnap = True,maxBounds = QtCore.QRectF(0,0,self.image.shape[1],self.image.shape[0]))
 
         roi.image_plot = self.image_plot
         roi.spectra_plot = self.spectra_plot
+        roi.intensity_plot = self.intensity_plot
         roi.data = self.data
         roi.img = self.img
 
         self.image_plot.addItem(roi)
         self.image_plot.roi_list += [roi]
-
 
         roi.roi_update()
         roi.sigRegionChanged.connect(roi.roi_update)
@@ -178,10 +172,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         integrated = self.data.inverted[:,:,left:right].sum(axis=2)
         image = (integrated / integrated.max() * 255).astype(uint8)
-        #image = ((integrated-integrated.min()) / (integrated.max()-integrated.min()) * 255).astype(uint8)
 
         self.data.image = image 
-
         self.img.setImage(image)
 
     def rgbUpdate(self):
@@ -194,30 +186,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
             integrated = self.data.inverted[:,:,left:right].sum(axis=2)
             image += [(integrated / integrated.max() * 255).astype(uint8)]
-            #image += [((integrated-integrated.min()) / (integrated.max()-integrated.min()) * 255).astype(uint8)]
 
         rgb_image = stack(image,-1).astype(uint8)
 
         self.data.image = rgb_image 
         self.img.setImage(rgb_image)
 
-    def pad_plus(self):
-
-        image = self.data.image
-
-        y_odd = pad(image,((0,0),(2,0),(0,0)))
-        y_even = pad(image,((0,0),(0,2),(0,0)))
-
-        y_odd[::2,:,:] = y_even[::2,:,:]
-
-        x = where(y_odd != 0)
-        image = y_odd[min(x[0]) : max(x[0]) + 1, min(x[1]) : max(x[1]) + 1]
-        print(image.shape)
-
-        self.img.setImage(image)
-
     def intensityUpdate(self):
 
+        self.image = self.data.normalized_spectra
         self.data.image = self.image 
         self.img.setImage(self.image)
 
@@ -229,8 +206,21 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Keyboard inputs
         """
-        if event.key() == QtCore.Qt.Key.Key_Q:
-            self.pad_plus()
+        #if event.key() == QtCore.Qt.Key.Key_U:
+        #    self.shift += 1
+        #    print('Shift:',self.shift)
+        #    self.data.inverted  = Preprocessing.shift_y(self.data.inverted_org,self.shift)
+        #    self.data.convoluted  = Preprocessing.shift_y(self.data.convoluted_org,self.shift)
+
+        #    self.intensityUpdate()
+
+        #if event.key() == QtCore.Qt.Key.Key_I:
+        #    self.shift -= 1
+        #    print('Shift:',self.shift)
+        #    self.data.inverted  = Preprocessing.shift_y(self.data.inverted_org,self.shift)
+        #    self.data.convoluted  = Preprocessing.shift_y(self.data.convoluted_org,self.shift)
+
+        #    self.intensityUpdate()
 
         if event.key() == QtCore.Qt.Key.Key_Right:
             if self.selected:
@@ -288,13 +278,12 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.spectra_plot.subtract_snip == True:
                 print('Subtract snip off')
                 self.spectra_plot.subtract_snip = False
-                self.spectra_plot.setXRange(0,1280,padding=0)
+                #self.spectra_plot.setXRange(0,1280,padding=0)
             else:
                 print('Subtract snip on')
                 self.spectra_plot.subtract_snip = True
-                self.spectra_plot.setXRange(0,1280,padding=0)
-                self.spectra_plot.setYRange(0,1280,padding=0)
-
+                #self.spectra_plot.setXRange(0,1280,padding=0)
+                #self.spectra_plot.setYRange(0,1280,padding=0)
 
             self.redrawROI()
 
@@ -302,7 +291,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.spectra_plot.calibration == True:
                 print('Calibration off')
                 self.spectra_plot.calibration = False
-                self.spectra_plot.setXRange(0,1280,padding=0)
+                #self.spectra_plot.setXRange(0,1280,padding=0)
             else:
                 print('Calibration on')
                 self.spectra_plot.calibration = True

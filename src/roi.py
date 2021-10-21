@@ -22,8 +22,6 @@ class MouseDragHandler(object):
         self.rotateSpeed = 0.5
         self.scaleSpeed = 1.01
 
-        print('DRAG')
-
     def mouseDragEvent(self, ev):
         roi = self.roi
 
@@ -111,8 +109,6 @@ class MyROI(ROI):
         self.prepareGeometryChange()
     
         # I added this
-        #size[0] = size[0] + 1
-        #size[1] = size[1] + 1
         size[0] = max(size[0],1)
         size[1] = max(size[1],1)
 
@@ -138,6 +134,7 @@ class MyROI(ROI):
             tr.scale(float(dShape[0]) / img.width(), float(dShape[1]) / img.height())
 
         dataBounds = tr.mapRect(self.boundingRect())
+
         x = [int(round(dataBounds.left())),int(round(dataBounds.right()))]
         y = [int(round(dataBounds.top())),int(round(dataBounds.bottom()))]
 
@@ -145,35 +142,34 @@ class MyROI(ROI):
 
     def calculate(self):
         """
-        FIXME
+        Roi
         """
-        _x,_y = self.zgetArraySlice(self.data.integrated_spectra,self.img)
-        print(_x,_y)
-
+        _y,_x = self.zgetArraySlice(self.data.integrated_spectra,self.img)
         s1 = slice(*_x)
         s2 = slice(*_y)
+
         z = self.data.inverted[s1,s2]
+        conv = self.data.convoluted[s1,s2]
+
         print('roi shape:',z.shape)
-        print('[x:%d y:%d]'%(s2.start,s1.stop),'[x:%d y:%d]'%(s2.stop,s1.start))
 
         res = 1 / (z.shape[0] * z.shape[1])
 
-        z = z.sum(axis=0).sum(axis=0)
-
-        conv = self.data.convolve[s1,s2]
-        self.conv = conv.sum(axis=0).sum(axis=0) * res
+        self.z = z.sum(axis=0).sum(axis=0).astype(float)
+        self.conv = conv.sum(axis=0).sum(axis=0).astype(float)
 
         if self.spectra_plot.normalized_roi == True:
-            res = 1000.0 / z.max()
+            res = 1000.0 / self.z.max()
 
-        self.z = z * res
+        self.z *= res
+        self.conv *= res
 
-        self.snip_z = self.snip()
+        self.snip_z = self.snip(self.conv)
 
         return self.z
 
     def crop(self):
-        _x,_y = self.zgetArraySlice(self.data.integrated_spectra,self.img)
+        _y,_x = self.zgetArraySlice(self.data.integrated_spectra,self.img)
         s1 = slice(*_x)
         s2 = slice(*_y)
         z = self.data.image[s1,s2]
@@ -184,9 +180,8 @@ class MyROI(ROI):
         self.calculate()
         self.redraw()
 
-    def snip(self):
-        self.conv_z = self.conv.copy()
-        x = self.conv.copy()
+    def snip(self,data):
+        x = data.copy()
 
         for p in range(1,self.spectra_plot.snip_m)[::-1]:
             a1 = x[p:-p]
@@ -197,21 +192,23 @@ class MyROI(ROI):
 
     def redraw(self):
         self.spectra_plot.clear()
-        for roi in self.image_plot.roi_list:
-            #self.spectra_plot.plot(roi.z,pen=roi.pen)
-            if self.spectra_plot.calibration == True:
-                self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
-            elif self.spectra_plot.subtract_snip == True:
-                self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
-            else:
-                self.spectra_plot.plot(roi.z,pen=roi.pen)
-                self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
-                self.spectra_plot.plot(roi.conv_z,pen=roi.conv_pen)
 
-        if self.spectra_plot.calibration == True:
-            self.spectra_plot.setLabel('bottom',text='Angle')
-        else:
-            self.spectra_plot.setLabel('bottom',text='Channel')
+        for roi in self.image_plot.roi_list:
+            print(roi.z.shape)
+            self.spectra_plot.plot(roi.z,pen=roi.pen)
+            #if self.spectra_plot.calibration == True:
+            #    self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
+            #elif self.spectra_plot.subtract_snip == True:
+            #    self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
+            #else:
+            #    self.spectra_plot.plot(roi.z,pen=roi.pen)
+                #self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
+                #self.spectra_plot.plot(roi.conv,pen=roi.conv_pen)
+
+        #if self.spectra_plot.calibration == True:
+        #    self.spectra_plot.setLabel('bottom',text='Angle')
+        #else:
+        #    self.spectra_plot.setLabel('bottom',text='Channel')
 
     def mouseClickEvent(self,event):
         if event.button() == QtCore.Qt.MouseButton.RightButton:
