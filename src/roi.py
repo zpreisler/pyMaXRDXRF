@@ -194,21 +194,24 @@ class MyROI(ROI):
         self.spectra_plot.clear()
 
         for roi in self.image_plot.roi_list:
-            print(roi.z.shape)
-            self.spectra_plot.plot(roi.z,pen=roi.pen)
-            #if self.spectra_plot.calibration == True:
-            #    self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
+
+            if self.spectra_plot.calibration == True:
+
+                self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
+                self.spectra_plot.plot(roi.data.calibration.cx,roi.conv,pen=roi.conv_pen)
+                self.spectra_plot.plot(roi.data.calibration.cx,roi.snip_z,pen=roi.snip_pen)
+
+                self.spectra_plot.setLabel('bottom',text='Angle')
+
             #elif self.spectra_plot.subtract_snip == True:
             #    self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
-            #else:
-            #    self.spectra_plot.plot(roi.z,pen=roi.pen)
-                #self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
-                #self.spectra_plot.plot(roi.conv,pen=roi.conv_pen)
 
-        #if self.spectra_plot.calibration == True:
-        #    self.spectra_plot.setLabel('bottom',text='Angle')
-        #else:
-        #    self.spectra_plot.setLabel('bottom',text='Channel')
+            else:
+                self.spectra_plot.plot(roi.z,pen=roi.pen)
+                self.spectra_plot.plot(roi.conv,pen=roi.conv_pen)
+                self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
+                self.spectra_plot.setLabel('bottom',text='Channel')
+
 
     def mouseClickEvent(self,event):
         if event.button() == QtCore.Qt.MouseButton.RightButton:

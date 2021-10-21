@@ -61,7 +61,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.intensity_plot.setLabel('left',text='Total count per pixel')
         self.intensity_plot.setTitle('Full intensity')
 
-        self.intensity_plot.plot(self.data.avg_spectra,pen=fn.mkPen((255,166,166), width=1.666))
+        self.intensity_plot.plot(self.data.calibration.cx,self.data.avg_spectra,pen=fn.mkPen((255,166,166), width=1.666))
 
     def setSpectraPlot(self):
         """
@@ -291,7 +291,8 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.spectra_plot.calibration == True:
                 print('Calibration off')
                 self.spectra_plot.calibration = False
-                #self.spectra_plot.setXRange(0,1280,padding=0)
+                self.spectra_plot.setXRange(0,1280,padding=0)
+
             else:
                 print('Calibration on')
                 self.spectra_plot.calibration = True
