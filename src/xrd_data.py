@@ -1,6 +1,7 @@
 from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
 from scipy.stats import kurtosis
 from numpy import fft,uint8
 
@@ -27,17 +28,24 @@ class Calibration():
 
         self.calibrate()
 
+
+    @staticmethod
+    def fce_second(x,a,b,c):
+        return a * x**2 + b * x + c 
+
     def calibrate(self):
-        def fce_second(x,a,b,c):
-            return a * x**2 + b * x + c 
 
         x,y = self.data
-        self.opt,self.opt_var = curve_fit(fce_second,x,y)
+        self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
 
         print('Calibrated data:',self.opt)
 
         self.c0 = arange(0,1280)
-        self.cx = fce_second(self.c0,*self.opt)
+        self.cx = self.fce_second(self.c0,*self.opt)
+        self.ic = interp1d(self.cx,self.c0,fill_value='extrapolate')
+
+    def c(self,x):
+        return self.fce_second(x,*self.opt)
 
 class DataXRD():
     """
@@ -175,6 +183,11 @@ class DataXRD():
         return (spectra / spectra.max() * 255).astype(uint8)
 
     def crop_spectra(self,left,right):
+        """
+        FIXME set bounds
+        """
+        left,right = int(left),int(right)
+
         crop = self.inverted[:,:,left:right].sum(axis=2)
         return (crop / crop.max() * 255).astype(uint8)
 

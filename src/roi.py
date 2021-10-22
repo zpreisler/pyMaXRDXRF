@@ -162,7 +162,7 @@ class MyROI(ROI):
         z = self.data.inverted[s1,s2]
         conv = self.data.convoluted[s1,s2]
 
-        print('roi shape:',z.shape)
+        #print('roi shape:',z.shape)
 
         res = 1 / (z.shape[0] * z.shape[1])
 
@@ -209,9 +209,9 @@ class MyROI(ROI):
             #if self.spectra_plot.calibration == True:
             if self.main.calibration == True:
 
-                self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
-                self.spectra_plot.plot(roi.data.calibration.cx,roi.conv,pen=roi.conv_pen)
-                self.spectra_plot.plot(roi.data.calibration.cx,roi.snip_z,pen=roi.snip_pen)
+                roi.item = self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
+                roi.item_conv = self.spectra_plot.plot(roi.data.calibration.cx,roi.conv,pen=roi.conv_pen)
+                roi.item_snip = self.spectra_plot.plot(roi.data.calibration.cx,roi.snip_z,pen=roi.snip_pen)
 
                 self.spectra_plot.setLabel('bottom',text='Angle')
 
@@ -219,9 +219,9 @@ class MyROI(ROI):
             #    self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
 
             else:
-                self.spectra_plot.plot(roi.z,pen=roi.pen)
-                self.spectra_plot.plot(roi.conv,pen=roi.conv_pen)
-                self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
+                roi.item = self.spectra_plot.plot(roi.z,pen=roi.pen)
+                roi.item_conv = self.spectra_plot.plot(roi.conv,pen=roi.conv_pen)
+                roi.item_snip = self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
                 self.spectra_plot.setLabel('bottom',text='Channel')
 
 
@@ -231,7 +231,11 @@ class MyROI(ROI):
                 self.image_plot.roi_list.remove(self)
                 self.image_plot.removeItem(self)
 
-            self.redraw()
+                self.spectra_plot.removeItem(self.item)
+                self.spectra_plot.removeItem(self.item_conv)
+                self.spectra_plot.removeItem(self.item_snip)
+
+            #self.redraw()
     
         else:
             p = self.mapToView(event.pos())
