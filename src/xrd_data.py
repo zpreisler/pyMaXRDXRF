@@ -174,6 +174,10 @@ class DataXRD():
         spectra = self.integrated_spectra
         return (spectra / spectra.max() * 255).astype(uint8)
 
+    def crop_spectra(self,left,right):
+        crop = self.inverted[:,:,left:right].sum(axis=2)
+        return (crop / crop.max() * 255).astype(uint8)
+
     def save_h5(self,name = None):
 
         if name == None:

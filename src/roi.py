@@ -77,10 +77,21 @@ class MyROI(ROI):
 
         self.addScaleHandle([1,0],[0,1])
         color = randint(0,256,3)
+
         self.pen = fn.mkPen(color, width=1.66)
+        self.setPen(self.pen)
+
         self.snip_pen = fn.mkPen(color, width=.66)
         self.conv_pen = fn.mkPen((0,0,0), width=1)
-        self.setPen(self.pen)
+
+    def setMain(self,main):
+
+        self.main = main
+        self.image_plot = main.image_plot
+        self.spectra_plot = main.spectra_plot
+        self.intensity_plot = main.intensity_plot
+        self.data = main.data
+        self.img = main.img
 
     def setSize(self, size, center=None, centerLocal=None, snap=False, update=True, finish=True):
         """
@@ -176,7 +187,7 @@ class MyROI(ROI):
 
         return z[::-1]
 
-    def roi_update(self):
+    def roiUpdate(self):
         self.calculate()
         self.redraw()
 
@@ -195,7 +206,8 @@ class MyROI(ROI):
 
         for roi in self.image_plot.roi_list:
 
-            if self.spectra_plot.calibration == True:
+            #if self.spectra_plot.calibration == True:
+            if self.main.calibration == True:
 
                 self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
                 self.spectra_plot.plot(roi.data.calibration.cx,roi.conv,pen=roi.conv_pen)

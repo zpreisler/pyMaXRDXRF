@@ -80,69 +80,38 @@ class MainWindow(QtWidgets.QMainWindow):
         self.spectra_plot.setLabel('left',text='Count per pixel')
         self.spectra_plot.setTitle('ROI spectras')
 
-    def __init__(self,data):
-        super().__init__()
-
-        self.keyPressed.connect(self.onKey)
-        self.data = data
-
-        self.data._inverted = self.data.inverted
-        self.data._convoluted = self.data.convoluted
-
-        self.mode = 0 
-        self.selected = None
-        self.speed_cycle = cycle([1,2,8,16]) 
-        self.speed = 2
-        self.shift = 0
-
-        self.data.inverted  = Preprocessing.shift_y(self.data._inverted,self.shift)
-        self.data.convoluted  = Preprocessing.shift_y(self.data._convoluted,self.shift)
-
-        setConfigOptions(background='w',antialias=True,leftButtonPan=False,imageAxisOrder='row-major')
-
-        self.resize(800,800)
-        self.setLayout()
-
-        self.setImagePlot()
-        self.setIntensityPlot()
-        self.setSpectraPlot()
-
-        self.image_plot.vb.spectra_plot = self.spectra_plot
-        self.image_plot.vb.intensity_plot = self.intensity_plot
-        self.image_plot.vb.main = self
-
-        self.spectra_plot.setXLink(self.intensity_plot)
-
+    def setFirstRoi(self):
         """
         Init ROI
         """
 
         roi = MyROI([32,32],[12,12],translateSnap = True, scaleSnap = True,maxBounds = QtCore.QRectF(0,0,self.image.shape[1],self.image.shape[0]))
 
-        roi.image_plot = self.image_plot
-        roi.spectra_plot = self.spectra_plot
-        roi.intensity_plot = self.intensity_plot
-        roi.data = self.data
-        roi.img = self.img
+        roi.setMain(self)
 
         self.image_plot.addItem(roi)
         self.image_plot.roi_list += [roi]
 
-        roi.roi_update()
-        roi.sigRegionChanged.connect(roi.roi_update)
+        roi.roiUpdate()
+        roi.sigRegionChanged.connect(roi.roiUpdate)
 
-        self.show()
-
+    def setMonoRegion(self):
         """
-        Regions
+        Mono Region
         """
         self.mono_region = LinearRegionItem(brush = [222,222,222,122], hoverBrush = [222,222,222,168])
         self.mono_region.setZValue(10)
-        self.mono_region.setRegion([718,730])
+        self.mono_region.setRegion([21,25])
+
         self.intensity_plot.addItem(self.mono_region)
         self.mono_region.hide()
 
         self.mono_region.sigRegionChanged.connect(self.mono_update)
+
+    def setRGBRegion(self):
+        """
+        Mono Region
+        """
 
         self.rgb_region = []
         colors = [[232,0,0],[0,255,0],[151,203,255]]
@@ -159,6 +128,48 @@ class MainWindow(QtWidgets.QMainWindow):
             self.rgb_region += [region]
             self.intensity_plot.addItem(region)
 
+    def __init__(self,data):
+        super().__init__()
+
+        self.keyPressed.connect(self.onKey)
+        self.data = data
+
+        self.data._inverted = self.data.inverted
+        self.data._convoluted = self.data.convoluted
+
+        self.mode = 0 
+        self.selected = None
+        self.speed_cycle = cycle([1,2,8,16]) 
+        self.speed = 1
+        self.shift = 0
+
+        self.calibration = False
+
+        self.data.inverted  = Preprocessing.shift_y(self.data._inverted,self.shift)
+        self.data.convoluted  = Preprocessing.shift_y(self.data._convoluted,self.shift)
+
+        setConfigOptions(background='w',antialias=True,leftButtonPan=False,imageAxisOrder='row-major')
+
+        self.resize(800,800)
+        self.setLayout()
+
+        self.setImagePlot()
+        self.setIntensityPlot()
+        self.setSpectraPlot()
+
+        self.setFirstRoi()
+
+        self.image_plot.vb.spectra_plot = self.spectra_plot
+        self.image_plot.vb.intensity_plot = self.intensity_plot
+        self.image_plot.vb.main = self
+
+        self.spectra_plot.setXLink(self.intensity_plot)
+
+        self.show()
+
+        self.setMonoRegion()
+        self.setRGBRegion()
+
     def redrawROI(self):
         for roi in self.image_plot.roi_list:
             roi.calculate()
@@ -170,11 +181,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         left,right = asarray(self.mono_region.getRegion()).astype(int)
 
-        integrated = self.data.inverted[:,:,left:right].sum(axis=2)
-        image = (integrated / integrated.max() * 255).astype(uint8)
-
-        self.data.image = image 
-        self.img.setImage(image)
+        self.data.image = self.data.crop_spectra(left,right)
+        self.img.setImage(self.data.image)
 
     def rgbUpdate(self):
         """
@@ -183,9 +191,7 @@ class MainWindow(QtWidgets.QMainWindow):
         image = []
         for region in self.rgb_region:
             left,right = asarray(region.getRegion()).astype(int)
-
-            integrated = self.data.inverted[:,:,left:right].sum(axis=2)
-            image += [(integrated / integrated.max() * 255).astype(uint8)]
+            image += [self.data.crop_spectra(left,right)]
 
         rgb_image = stack(image,-1).astype(uint8)
 
@@ -202,36 +208,22 @@ class MainWindow(QtWidgets.QMainWindow):
         super().keyPressEvent(event)
         self.keyPressed.emit(event)
 
-    def onKey(self,event):
-        """
-        Keyboard inputs
-        """
-        #if event.key() == QtCore.Qt.Key.Key_U:
-        #    self.shift += 1
-        #    print('Shift:',self.shift)
-        #    self.data.inverted  = Preprocessing.shift_y(self.data.inverted_org,self.shift)
-        #    self.data.convoluted  = Preprocessing.shift_y(self.data.convoluted_org,self.shift)
+    def moveRegion(self,event):
 
-        #    self.intensityUpdate()
-
-        #if event.key() == QtCore.Qt.Key.Key_I:
-        #    self.shift -= 1
-        #    print('Shift:',self.shift)
-        #    self.data.inverted  = Preprocessing.shift_y(self.data.inverted_org,self.shift)
-        #    self.data.convoluted  = Preprocessing.shift_y(self.data.convoluted_org,self.shift)
-
-        #    self.intensityUpdate()
-
-        if event.key() == QtCore.Qt.Key.Key_Right:
-            if self.selected:
-                x = asarray(self.selected.getRegion()).astype(int)
-                x += self.speed 
-                self.selected.setRegion(x)
+        if event.key() == QtCore.Qt.Key.Key_X:
+            self.speed = next(self.speed_cycle)
+            print('Shift speed:',self.speed)
 
         if event.key() == QtCore.Qt.Key.Key_Left:
             if self.selected:
                 x = asarray(self.selected.getRegion()).astype(int)
                 x -= self.speed
+                self.selected.setRegion(x)
+
+        if event.key() == QtCore.Qt.Key.Key_Right:
+            if self.selected:
+                x = asarray(self.selected.getRegion()).astype(int)
+                x += self.speed 
                 self.selected.setRegion(x)
 
         if event.key() == QtCore.Qt.Key.Key_Up:
@@ -246,6 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 x[1] -= self.speed
                 self.selected.setRegion(x)
 
+    def printRoi(self,event):
         if event.key() == QtCore.Qt.Key.Key_P:
             for i,roi in enumerate(self.image_plot.roi_list):
                 name = self.data.path + '/' + 'roi_%d.dat'%i
@@ -260,10 +253,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 print('Saving ROI crop images',name)
                 imsave(name,roi.crop())
 
-        if event.key() == QtCore.Qt.Key.Key_X:
-            self.speed = next(self.speed_cycle)
-            print('Shift speed:',self.speed)
-
+    def adjustSnip(self,event):
         if event.key() == QtCore.Qt.Key.Key_W:
             self.spectra_plot.snip_m += 1
             print('Snip:',self.spectra_plot.snip_m)
@@ -274,31 +264,43 @@ class MainWindow(QtWidgets.QMainWindow):
             print('Snip:',self.spectra_plot.snip_m)
             self.redrawROI()
 
-        if event.key() == QtCore.Qt.Key.Key_S:
-            if self.spectra_plot.subtract_snip == True:
-                print('Subtract snip off')
-                self.spectra_plot.subtract_snip = False
-                #self.spectra_plot.setXRange(0,1280,padding=0)
-            else:
-                print('Subtract snip on')
-                self.spectra_plot.subtract_snip = True
-                #self.spectra_plot.setXRange(0,1280,padding=0)
-                #self.spectra_plot.setYRange(0,1280,padding=0)
-
-            self.redrawROI()
+    def switchCalibration(self,event):
 
         if event.key() == QtCore.Qt.Key.Key_C:
-            if self.spectra_plot.calibration == True:
+            if self.calibration == True:
                 print('Calibration off')
-                self.spectra_plot.calibration = False
+                self.calibration = False
                 self.spectra_plot.setXRange(0,1280,padding=0)
 
             else:
                 print('Calibration on')
-                self.spectra_plot.calibration = True
+                self.calibration = True
                 self.spectra_plot.setXRange(self.data.calibration.cx[0],self.data.calibration.cx[-1],padding=0)
 
             self.redrawROI()
+
+    def onKey(self,event):
+        """
+        Keyboard inputs
+        """
+
+        self.moveRegion(event)
+        self.switchCalibration(event)
+
+        #if event.key() == QtCore.Qt.Key.Key_U:
+        #    self.shift += 1
+        #    print('Shift:',self.shift)
+        #    self.data.inverted  = Preprocessing.shift_y(self.data.inverted_org,self.shift)
+        #    self.data.convoluted  = Preprocessing.shift_y(self.data.convoluted_org,self.shift)
+
+        #    self.intensityUpdate()
+
+        #if event.key() == QtCore.Qt.Key.Key_S:
+        #    if self.spectra_plot.subtract_snip == True:
+        #        print('Subtract snip off')
+        #        self.spectra_plot.subtract_snip = False
+        #        #self.spectra_plot.setXRange(0,1280,padding=0)
+        #    self.redrawROI()
 
         if event.key() == QtCore.Qt.Key.Key_N:
 
@@ -342,6 +344,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 self.intensityUpdate()
 
+
         if event.key() == QtCore.Qt.Key.Key_1:
             self.selected = self.rgb_region[0]
             print('selected: red')
@@ -353,3 +356,4 @@ class MainWindow(QtWidgets.QMainWindow):
         if event.key() == QtCore.Qt.Key.Key_3:
             self.selected = self.rgb_region[2]
             print('selected: blue')
+

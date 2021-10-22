@@ -152,13 +152,17 @@ class MyViewBox(ViewBox):
                 self.image_plot.addItem(roi)
                 self.image_plot.roi_list += [roi]
 
-                roi.image_plot = self.main.image_plot
-                roi.spectra_plot = self.main.spectra_plot
-                roi.data = self.main.data
-                roi.img = self.main.img
+                roi.setMain(self.main)
+                
+                #roi.main = self.main
+                #roi.image_plot = self.main.image_plot
+                #roi.spectra_plot = self.main.spectra_plot
+                #roi.intensity_plot = self.main.intensity_plot
+                #roi.data = self.main.data
+                #roi.img = self.main.img
 
                 roi.roi_update()
-                roi.sigRegionChanged.connect(roi.roi_update)
+                roi.sigRegionChanged.connect(roi.roiUpdate)
 
             else:
                 self.updateRoiBox(event.buttonDownPos(), event.pos())
