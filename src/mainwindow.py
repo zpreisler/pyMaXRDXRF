@@ -402,6 +402,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.data.convoluted  = Preprocessing.shift_y(self.data._convoluted,self.shift)
 
             self.intensityUpdate()
+    
+    def setLogPlots(self,event):
+
+        if event.key() == QtCore.Qt.Key.Key_L:
+
+            if self.spectra_plot.ctrl.logYCheck.isChecked():
+
+                self.spectra_plot.setLogMode(False,False)
+                self.intensity_plot.setLogMode(False,False)
+
+            else:
+
+                self.spectra_plot.setLogMode(False,True)
+                self.intensity_plot.setLogMode(False,True)
 
     def onKey(self,event):
         """
@@ -417,4 +431,5 @@ class MainWindow(QtWidgets.QMainWindow):
         self.applySnip(event)
         self.printRoi(event)
         self.shiftY(event)
+        self.setLogPlots(event)
 
