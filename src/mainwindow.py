@@ -197,7 +197,8 @@ class MainWindow(QtWidgets.QMainWindow):
             x  = self.data.calibration.ic(x)
 
         self.data.image = self.data.crop_spectra(*x)
-        self.img.setImage(self.data.image)
+        if self.mode == 1:
+            self.img.setImage(self.data.image)
 
     def rgbUpdate(self):
         """
@@ -214,7 +215,9 @@ class MainWindow(QtWidgets.QMainWindow):
         rgb_image = stack(image,-1).astype(uint8)
 
         self.data.image = rgb_image 
-        self.img.setImage(rgb_image)
+
+        if self.mode == 2:
+            self.img.setImage(rgb_image)
 
     def intensityUpdate(self):
 
