@@ -184,12 +184,17 @@ class DataXRD():
 
     def crop_spectra(self,left,right):
         """
-        FIXME set bounds
+        FIXME set bounds maybe.
         """
         left,right = int(left),int(right)
 
-        crop = self.inverted[:,:,left:right].sum(axis=2)
-        return (crop / crop.max() * 255).astype(uint8)
+        crop = self.inverted[:,:,left:right]
+        crop = crop.sum(axis=2)
+
+        if crop.max() == 0:
+            return crop
+        else:
+            return (crop / crop.max() * 255).astype(uint8)
 
     def save_h5(self,name = None):
 

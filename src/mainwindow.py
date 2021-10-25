@@ -135,10 +135,10 @@ class MainWindow(QtWidgets.QMainWindow):
             region.setRegion((pos[i],pos[i]+12))
             region.hide()
 
-            region.sigRegionChanged.connect(self.rgbUpdate)
-
             self.rgb_region += [region]
             self.intensity_plot.addItem(region)
+
+            region.sigRegionChanged.connect(self.rgbUpdate)
 
     def __init__(self,data):
         super().__init__()
@@ -183,9 +183,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.show()
 
     def redrawROI(self):
-        for roi in self.image_plot.roi_list:
-            roi.calculate()
-        roi.redraw()
+        if self.image_plot.roi_list:
+            for roi in self.image_plot.roi_list:
+                roi.calculate()
+            roi.redraw()
 
     def monoUpdate(self):
         """
