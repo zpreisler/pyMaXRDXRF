@@ -49,18 +49,18 @@ def main():
         data = DataXRD(**kwargs).from_source()
         data.save_h5()
 
-        #data.inverted = Preprocessing.shift_y(data.inverted,shift_y)
-
-        #if shift_z != 0:
-        #    data.shift_z()
+        if shift_z != 0:
+            shift = Preprocessing.shift_z(data.convoluted,channel = shift_z)
+            data.convoluted = Preprocessing.apply_shift_z(data.convoluted,shift)
+            data.inverted = Preprocessing.apply_shift_z(data.inverted,shift)
 
     else:
         data = DataXRD(**kwargs).load_h5()
-        #data.inverted = data.shift_y(shift_y)
-        #data.inverted = Preprocessing.shift_y(data.inverted,shift_y)
 
-        #if shift_z != 0:
-        #    data.shift_z()
+        if shift_z != 0:
+            shift = Preprocessing.shift_z(data.convoluted,channel = shift_z)
+            data.convoluted = Preprocessing.apply_shift_z(data.convoluted,shift)
+            data.inverted = Preprocessing.apply_shift_z(data.inverted,shift)
 
     data.calibrate()
 

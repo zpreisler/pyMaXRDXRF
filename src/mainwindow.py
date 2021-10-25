@@ -386,6 +386,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.redrawROI()
 
+    def shiftY(self,event):
+        if event.key() == QtCore.Qt.Key.Key_U:
+            self.shift += 1
+            print('Shift:',self.shift)
+            self.data.inverted  = Preprocessing.shift_y(self.data._inverted,self.shift)
+            self.data.convoluted  = Preprocessing.shift_y(self.data._convoluted,self.shift)
+
+            self.intensityUpdate()
+
+        if event.key() == QtCore.Qt.Key.Key_I:
+            self.shift -= 1
+            print('Shift:',self.shift)
+            self.data.inverted  = Preprocessing.shift_y(self.data._inverted,self.shift)
+            self.data.convoluted  = Preprocessing.shift_y(self.data._convoluted,self.shift)
+
+            self.intensityUpdate()
+
     def onKey(self,event):
         """
         Keyboard inputs
@@ -398,13 +415,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.switchRegion(event)
         self.adjustSnip(event)
         self.applySnip(event)
-
-        #if event.key() == QtCore.Qt.Key.Key_U:
-        #    self.shift += 1
-        #    print('Shift:',self.shift)
-        #    self.data.inverted  = Preprocessing.shift_y(self.data.inverted_org,self.shift)
-        #    self.data.convoluted  = Preprocessing.shift_y(self.data.convoluted_org,self.shift)
-
-        #    self.intensityUpdate()
-
+        self.printRoi(event)
+        self.shiftY(event)
 

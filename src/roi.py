@@ -240,7 +240,9 @@ class MyROI(ROI):
 
                 self.spectra_plot.removeItem(self.item)
                 self.spectra_plot.removeItem(self.item_conv)
-                self.spectra_plot.removeItem(self.item_snip)
+
+                if hasattr(self,'item_snip'):
+                    self.spectra_plot.removeItem(self.item_snip)
 
             #self.redraw()
     

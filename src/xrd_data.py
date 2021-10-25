@@ -1,4 +1,4 @@
-from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index
+from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index,asarray
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
@@ -326,4 +326,30 @@ class Preprocessing():
             return pad_left(data,n)
         elif n < 0:
             return pad_right(data,n)
+
+    def shift_z(data,off=24,channel=555):
+        
+        b = []
+        for i,x in enumerate(data):
+            a = []
+            for j,y in enumerate(x):
+                select = y[channel - off : channel + off]
+                f = select.argmax() - off
+
+                if f > -off/2 and f < off/2:
+                    a += [-f]
+                else:
+                    a += [0]
+            b += [asarray(a)]
+
+        return asarray(b)
+
+    def apply_shift_z(data,shift):
+        u = []
+        for _y,_x in zip(data,shift):
+            v = []
+            for y,x in zip(_y,_x):
+                v += [roll(y,x)]
+            u += [asarray(v)]
+        return asarray(u)
 
