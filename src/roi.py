@@ -206,22 +206,29 @@ class MyROI(ROI):
 
         for roi in self.image_plot.roi_list:
 
-            #if self.spectra_plot.calibration == True:
             if self.main.calibration == True:
 
-                roi.item = self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
-                roi.item_conv = self.spectra_plot.plot(roi.data.calibration.cx,roi.conv,pen=roi.conv_pen)
-                roi.item_snip = self.spectra_plot.plot(roi.data.calibration.cx,roi.snip_z,pen=roi.snip_pen)
+                if self.spectra_plot.subtract_snip == True:
+                    roi.item = self.spectra_plot.plot(roi.data.calibration.cx,roi.z - roi.snip_z,pen=roi.pen)
+                    roi.item_conv = self.spectra_plot.plot(roi.data.calibration.cx,roi.conv - roi.snip_z,pen=roi.conv_pen)
+
+                else:
+                    roi.item = self.spectra_plot.plot(roi.data.calibration.cx,roi.z,pen=roi.pen)
+                    roi.item_conv = self.spectra_plot.plot(roi.data.calibration.cx,roi.conv,pen=roi.conv_pen)
+                    roi.item_snip = self.spectra_plot.plot(roi.data.calibration.cx,roi.snip_z,pen=roi.snip_pen)
 
                 self.spectra_plot.setLabel('bottom',text='Angle')
 
-            #elif self.spectra_plot.subtract_snip == True:
-            #    self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
 
             else:
-                roi.item = self.spectra_plot.plot(roi.z,pen=roi.pen)
-                roi.item_conv = self.spectra_plot.plot(roi.conv,pen=roi.conv_pen)
-                roi.item_snip = self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
+                if self.spectra_plot.subtract_snip == True:
+                    roi.item = self.spectra_plot.plot(roi.z - roi.snip_z,pen=roi.pen)
+                    roi.item_conv = self.spectra_plot.plot(roi.conv - roi.snip_z,pen=roi.conv_pen)
+                else:
+                    roi.item = self.spectra_plot.plot(roi.z,pen=roi.pen)
+                    roi.item_conv = self.spectra_plot.plot(roi.conv,pen=roi.conv_pen)
+                    roi.item_snip = self.spectra_plot.plot(roi.snip_z,pen=roi.snip_pen)
+
                 self.spectra_plot.setLabel('bottom',text='Channel')
 
 

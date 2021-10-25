@@ -232,9 +232,6 @@ class DataXRD():
 
         return self
 
-    #def shift_y(self,data,n):
-    #    return Preprocessing.shift_y(data,n)
-
     def shift_z(self,channel = 555):
 
         off = 24 

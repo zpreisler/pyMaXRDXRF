@@ -375,6 +375,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.selected = self.rgb_region[2]
             print('selected: blue')
 
+    def applySnip(self,event):
+        if event.key() == QtCore.Qt.Key.Key_S:
+            if self.spectra_plot.subtract_snip == True:
+                print('Subtract snip off')
+                self.spectra_plot.subtract_snip = False
+            else:
+                print('Subtract snip onn')
+                self.spectra_plot.subtract_snip = True
+
+            self.redrawROI()
 
     def onKey(self,event):
         """
@@ -386,6 +396,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.normalizeSpectra(event)
         self.switchModes(event)
         self.switchRegion(event)
+        self.adjustSnip(event)
+        self.applySnip(event)
 
         #if event.key() == QtCore.Qt.Key.Key_U:
         #    self.shift += 1
@@ -394,12 +406,5 @@ class MainWindow(QtWidgets.QMainWindow):
         #    self.data.convoluted  = Preprocessing.shift_y(self.data.convoluted_org,self.shift)
 
         #    self.intensityUpdate()
-
-        #if event.key() == QtCore.Qt.Key.Key_S:
-        #    if self.spectra_plot.subtract_snip == True:
-        #        print('Subtract snip off')
-        #        self.spectra_plot.subtract_snip = False
-        #        #self.spectra_plot.setXRange(0,1280,padding=0)
-        #    self.redrawROI()
 
 
