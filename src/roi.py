@@ -164,7 +164,7 @@ class MyROI(ROI):
 
         #print('roi shape:',z.shape)
 
-        res = 1 / (z.shape[0] * z.shape[1])
+        res = 1.0 / (z.shape[0] * z.shape[1])
 
         self.z = z.sum(axis=0).sum(axis=0).astype(float)
         self.conv = conv.sum(axis=0).sum(axis=0).astype(float)

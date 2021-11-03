@@ -62,7 +62,7 @@ def main():
             data.convoluted = Preprocessing.apply_shift_z(data.convoluted,shift)
             data.inverted = Preprocessing.apply_shift_z(data.inverted,shift)
 
-    data.calibrate()
+    data.calibrate(n_channels=data.shape[-1])
 
     """
     Open window

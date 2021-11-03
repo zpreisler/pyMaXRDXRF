@@ -1,4 +1,4 @@
-from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index,asarray
+from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index,asarray,frombuffer
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
@@ -14,9 +14,10 @@ class Calibration():
     """
     Channels Calibration Class.
     """
-    def __init__(self,name,parent=None):
+    def __init__(self,name,parent=None,n_channels=1280):
 
         self.data = array([[1,2,3],[1,2,3]])
+        self.n_channels = n_channels
 
         try:
             self.data = loadtxt(name,unpack=True)
@@ -26,21 +27,22 @@ class Calibration():
             print(name,'is missing.')
             print('Calibration data:',self.data)
 
-        self.calibrate()
+        self.calibrate(n_channels)
 
 
     @staticmethod
     def fce_second(x,a,b,c):
         return a * x**2 + b * x + c 
 
-    def calibrate(self):
+    def calibrate(self,n_channels=1280):
+        self.n_channels = n_channels
 
         x,y = self.data
         self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
 
         print('Calibrated data:',self.opt)
 
-        self.c0 = arange(0,1280)
+        self.c0 = arange(0,n_channels)
         self.cx = self.fce_second(self.c0,*self.opt)
         self.ic = interp1d(self.cx,self.c0,fill_value='extrapolate')
 
@@ -94,7 +96,7 @@ class DataXRD():
     def read_xrd(self):
         names = sorted(glob(self.path + '/[F,f]rame*.dat'), key=lambda x: int(re.sub('\D','',x)))
 
-        print("Reading data")
+        print("Reading XRD data")
         self.__read_xrd(names)
         print("Done")
 
@@ -125,8 +127,35 @@ class DataXRD():
 
         self.source = array(z)[::-1]
 
-    def calibrate(self):
-        self.calibration = Calibration(self.path + '/' + self.calibration,self)
+    def read_xrf(self):
+
+        names = sorted(glob(self.path + '/*Z0*.edf'), key=lambda x: int(re.sub('\D','',x)))
+
+        print("Reading XRF data")
+        self.__read_xrf(names)
+        print("Done")
+
+    def __read_xrf(self,names,n=14,shape=(-1,2048)):
+
+        def read_edf_line(name,n,shape=(-1,2048)):
+            with open(name,'rb') as f:
+                for _ in range(n):
+                    f.readline()
+
+                x = frombuffer(f.read(),'d')
+                x = x.reshape(*shape)
+
+            return x
+
+        x = []
+        for name in names:
+            x += [read_edf_line(name,n,shape)]
+
+        self.inverted = asarray(x)[::-1]
+        self.shape = self.inverted.shape
+
+    def calibrate(self,n_channels=1280):
+        self.calibration = Calibration(self.path + '/' + self.calibration,self,n_channels)
 
     def reshape(self):
         self.reshaped = self.source.reshape(self.params['y'],self.params['x'],-1)
@@ -154,12 +183,17 @@ class DataXRD():
         """
         Read data from source
         """
-        self.read_params()
-        self.read_xrd()
+        if glob(self.path + '/*.dat'):
+            self.read_params()
+            self.read_xrd()
 
-        self.reshape()
-        self.invert()
+            self.reshape()
+            self.invert()
 
+        else:
+            self.read_xrf()
+
+        print('Smoothing data')
         self.convoluted = Preprocessing.convolve(self.inverted)
 
         return self

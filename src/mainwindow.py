@@ -8,6 +8,8 @@ from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
 from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout
 from pyqtgraph.Qt import QtCore,QtWidgets,QtGui
 
+from matplotlib.pyplot import imsave
+
 from numpy import uint8,array,asarray,stack,savetxt,c_,pad,where,minimum,sqrt,argmin,round
 from numpy.random import random,randint
 from itertools import cycle
@@ -162,7 +164,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         setConfigOptions(background='w',antialias=True,leftButtonPan=False,imageAxisOrder='row-major')
 
-        self.resize(800,800)
+        self.resize(900,900)
         self.setLayout()
 
         self.setImagePlot()
@@ -266,11 +268,15 @@ class MainWindow(QtWidgets.QMainWindow):
             for i,roi in enumerate(self.image_plot.roi_list):
                 name = self.data.path + '/' + 'roi_%d.dat'%i
                 print('Saving ROI spectras',name)
-                savetxt(name,c_[roi.data.calibration.cx,roi.z],fmt='%0.3f %d')
+                savetxt(name,c_[roi.data.calibration.cx,roi.z],fmt='%0.3f %0.3f')
+
+                name = self.data.path + '/' + 'roi_%d_raw.dat'%i
+                print('Saving raw ROI spectras',name)
+                savetxt(name,roi.z,fmt='%0.3f')
 
                 print('Saving ROI images',name)
                 name = self.data.path + '/' + 'roi_%d.tiff'%i
-                imsave(name,roi.data.image)
+                imsave(name,roi.data.image[::-1])
 
                 name = self.data.path + '/' + 'roi_crop_%d.tiff'%i
                 print('Saving ROI crop images',name)
@@ -381,7 +387,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 print('Subtract snip off')
                 self.spectra_plot.subtract_snip = False
             else:
-                print('Subtract snip onn')
+                print('Subtract snip on')
                 self.spectra_plot.subtract_snip = True
 
             self.redrawROI()
