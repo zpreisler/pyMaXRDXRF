@@ -208,6 +208,16 @@ class DataXRD():
         return self.inverted.sum(axis = 0).sum(axis = 0) / (self.shape[0] * self.shape[1])
 
     @property
+    def spectra255(self):
+        #if hasattr(self,'__all_spectra'):
+        #    return self.__all_spectra
+        #else:
+        #    self.__all_spectra = self.inverted.sum(axis = 0).sum(axis = 0) / (self.shape[0] * self.shape[1])
+        #    return self.__all_spectra
+        spectra =  self.inverted.sum(axis = 0).sum(axis = 0)
+        return (spectra / spectra.max() * 255).astype(uint8)
+
+    @property
     def integrated_spectra(self):
         return self.inverted.sum(axis = 2)
 

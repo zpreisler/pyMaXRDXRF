@@ -5,7 +5,7 @@ from src.viewbox import MyGLW,MyViewBox,MySpectraViewBox
 from pyqtgraph import exec as exec_
 from pyqtgraph import functions as fn
 from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
-from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout
+from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout,ColorBarItem,HistogramLUTItem
 from pyqtgraph.Qt import QtCore,QtWidgets,QtGui
 
 from matplotlib.pyplot import imsave
@@ -37,10 +37,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_plot = self.layout.addFancyPlot(viewBox = MyViewBox(border=[255,255,255],name='image_plot'),enableMenu=False)
         self.img = ImageItem()
 
+        #bar = ColorBarItem(values=(0,255))
+
+        hist = HistogramLUTItem(levelMode='mono')
+        hist_rgba = HistogramLUTItem(levelMode='rgba')
+
+        hist.setLevels(min=0,max=255)
+        hist.setImageItem(self.img)
+
         self.image_plot.addItem(self.img)
+
+        self.histogram_plot = self.layout.addItem(hist)
+        self.histogram_rgba_plot = self.layout.addItem(hist_rgba)
+        #self.histogram_plot.addItem(hist)
 
         self.image = self.data.normalized_spectra
         self.img.setImage(self.image)
+
+        #bar.setImageItem(self.img,insert_in=self.image_plot)
 
         self.data.image = self.image
 
@@ -69,11 +83,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.intensity_plot.clearPlots()
 
         if self.calibration is True:
-            self.intensity_plot.plot(self.data.calibration.cx,self.data.avg_spectra,pen=fn.mkPen((255,166,166), width=1.666))
+            #self.intensity_plot.plot(self.data.calibration.cx,self.data.avg_spectra,pen=fn.mkPen((255,166,166), width=1.666))
+            self.intensity_plot.plot(self.data.calibration.cx,self.data.spectra255,pen=fn.mkPen((255,166,166), width=1.666))
             self.intensity_plot.setLabel('bottom',text='Angle')
 
         else:
-            self.intensity_plot.plot(self.data.avg_spectra,pen=fn.mkPen((255,166,166), width=1.666))
+            self.intensity_plot.plot(self.data.spectra255,pen=fn.mkPen((255,166,166), width=1.666))
+            print(self.data.spectra255)
             self.intensity_plot.setLabel('bottom',text='Channel')
 
     def setSpectraPlot(self):
@@ -154,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mode = 0 
         self.selected = None
         self.speed_cycle = cycle([1,2,8,16]) 
-        self.speed = 1
+        self.speed = 8
         self.shift = 0
 
         self.calibration = False
@@ -215,7 +231,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
             image += [self.data.crop_spectra(*x)]
 
-        rgb_image = stack(image,-1).astype(uint8)
+        rgb_image = stack(image,-1)
+        rgb_image = rgb_image.astype(uint8)
 
         self.data.image = rgb_image 
 
