@@ -39,16 +39,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         #bar = ColorBarItem(values=(0,255))
 
-        hist = HistogramLUTItem(levelMode='mono')
-        hist_rgba = HistogramLUTItem(levelMode='rgba')
+        self.hist = HistogramLUTItem(levelMode='mono')
+        self.hist_rgba = HistogramLUTItem(levelMode='rgba')
 
-        hist.setLevels(min=0,max=255)
-        hist.setImageItem(self.img)
+        self.hist.setImageItem(self.img)
+        self.hist_rgba.setImageItem(self.img)
 
         self.image_plot.addItem(self.img)
 
-        self.histogram_plot = self.layout.addItem(hist)
-        self.histogram_rgba_plot = self.layout.addItem(hist_rgba)
+        self.histogram_plot = self.layout.addItem(self.hist)
+        self.histogram_rgba_plot = self.layout.addItem(self.hist_rgba)
         #self.histogram_plot.addItem(hist)
 
         self.image = self.data.normalized_spectra
