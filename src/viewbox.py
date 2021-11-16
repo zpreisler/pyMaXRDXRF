@@ -73,7 +73,7 @@ class MySpectraViewBox(ViewBox):
         p = self.mapToView(event.pos())
         x,y = p.x(),p.y()
 
-        self.spectra_plot.setTitle('x: %d  y: %d'%(x,y))
+        self.spectra_plot.setTitle('x: %.2f  y: %.2f'%(x,y))
 
     def mouseClickEvent(self, event):
         p = self.mapToView(event.pos())
