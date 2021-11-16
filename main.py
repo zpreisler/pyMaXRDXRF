@@ -30,7 +30,7 @@ def main():
     parser.add_argument('-c','--calibration',default='calibration.ini',help='calibration file')
     parser.add_argument('-s','--shift-y',default=0,help='shift correction',type=int)
     parser.add_argument('-l','--load',action='store_true')
-    parser.add_argument('-z','--shift-z',default = 555,type=int)
+    parser.add_argument('-z','--shift-z',default = 0,type=int)
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -63,6 +63,9 @@ def main():
             data.inverted = Preprocessing.apply_shift_z(data.inverted,shift)
 
     data.calibrate(n_channels=data.shape[-1])
+    data.snip = Preprocessing.snip(data.convoluted,24)
+    data.snipped = data.inverted - data.snip
+    data.snipped[data.snipped < 0] = 0
 
     """
     Open window

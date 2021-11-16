@@ -229,7 +229,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.calibration is True:
                 x  = self.data.calibration.ic(x)
 
-            image += [self.data.crop_spectra(*x)]
+            if self.spectra_plot.subtract_snip == True:
+                image += [self.data.crop_snip_spectra(*x)]
+            else:
+                image += [self.data.crop_spectra(*x)]
 
         rgb_image = stack(image,-1)
         rgb_image = rgb_image.astype(uint8)

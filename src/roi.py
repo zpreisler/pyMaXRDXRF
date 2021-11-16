@@ -170,7 +170,7 @@ class MyROI(ROI):
         self.conv = conv.sum(axis=0).sum(axis=0).astype(float)
 
         if self.spectra_plot.normalized_roi == True:
-            res = 1000.0 / self.z.max()
+            res = 255.0 / self.z.max()
 
         self.z *= res
         self.conv *= res

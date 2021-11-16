@@ -240,6 +240,20 @@ class DataXRD():
         else:
             return (crop / crop.max() * 255).astype(uint8)
 
+    def crop_snip_spectra(self,left,right):
+        """
+        FIXME set bounds maybe.
+        """
+        left,right = int(left),int(right)
+        crop = self.snipped[:,:,left:right]
+
+        crop = crop.sum(axis=2)
+
+        if crop.max() == 0:
+            return crop
+        else:
+            return (crop / crop.max() * 255).astype(uint8)
+
     def save_h5(self,name = None):
 
         if name == None:
@@ -348,6 +362,14 @@ class Preprocessing():
             sum_win = expand_dims(win.sum(axis=2),2)
             x = x / sum_win
 
+        return x
+
+    def snip(data,snip_m):
+        x = data.copy()
+        for p in range(1,snip_m)[::-1]:
+            a1 = x[p:-p]
+            a2 = (x[:(-2 * p)] + x[(2 * p):]) * 0.5
+            x[p:-p] = minimum(a2,a1)
         return x
 
     def shift_y(data,n):
