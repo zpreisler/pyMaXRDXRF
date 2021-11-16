@@ -226,6 +226,10 @@ class MainWindow(QtWidgets.QMainWindow):
         image = []
         for region in self.rgb_region:
             x = asarray(region.getRegion()).astype(float)
+
+            self.spectra_plot._x = x
+            print('RGBupdate:',self.spectra_plot)
+
             if self.calibration is True:
                 x  = self.data.calibration.ic(x)
 
