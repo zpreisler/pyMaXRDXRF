@@ -189,11 +189,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setFirstRoi()
 
+        self.spectra_plot.setXLink(self.intensity_plot)
+
         self.image_plot.vb.spectra_plot = self.spectra_plot
         self.image_plot.vb.intensity_plot = self.intensity_plot
         self.image_plot.vb.main = self
-
-        self.spectra_plot.setXLink(self.intensity_plot)
 
         self.setMonoRegion()
         self.setRGBRegion()
@@ -224,11 +224,11 @@ class MainWindow(QtWidgets.QMainWindow):
         RGB update
         """
         image = []
+        region_x = []
         for region in self.rgb_region:
             x = asarray(region.getRegion()).astype(float)
 
-            self.spectra_plot._x = x
-            print('RGBupdate:',self.spectra_plot)
+            region_x += [x]
 
             if self.calibration is True:
                 x  = self.data.calibration.ic(x)
@@ -237,6 +237,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 image += [self.data.crop_snip_spectra(*x)]
             else:
                 image += [self.data.crop_spectra(*x)]
+
+        self.intensity_plot.region_x = asarray(region_x)
 
         rgb_image = stack(image,-1)
         rgb_image = rgb_image.astype(uint8)

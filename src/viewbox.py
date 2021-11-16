@@ -73,8 +73,11 @@ class MySpectraViewBox(ViewBox):
         p = self.mapToView(event.pos())
         x,y = p.x(),p.y()
 
-        print('hover:',self.spectra_plot)
         self.spectra_plot.setTitle('x: %.2f  y: %.2f'%(x,y))
+
+        if hasattr(self.spectra_plot,'region_x'):
+            rx = self.spectra_plot.region_x
+            self.spectra_plot.setTitle('x: %.2f  y: %.2f R[%d %d] G[%d %d] B[%d %d]'%(x,y,rx[0][0],rx[0][1],rx[1][0],rx[1][1],rx[2][0],rx[2][1]))
 
     def mouseClickEvent(self, event):
         p = self.mapToView(event.pos())
