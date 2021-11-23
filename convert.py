@@ -20,6 +20,7 @@ import os
 from matplotlib.image import imsave
 
 from argparse import ArgumentParser
+import h5py
 
 def main():
     """
@@ -33,6 +34,7 @@ def main():
     parser.add_argument('-s','--shift-y',default=0,help='shift correction',type=int)
     parser.add_argument('-l','--load',action='store_true')
     parser.add_argument('-z','--shift-z',default = 0,type=int)
+    parser.add_argument('--asci',action='store_true')
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -46,6 +48,8 @@ def main():
     load = kwargs.pop('load')
     shift_y = kwargs.pop('shift_y')
     shift_z = kwargs.pop('shift_z')
+    #save_h5 = kwargs.pop('h5')
+    save_asci = kwargs.pop('asci')
 
     if load is False:
         data = DataXRD(**kwargs).from_source()
@@ -76,8 +80,26 @@ def main():
     except:
         pass
 
-    for i,t in enumerate(tmp_data):
-        savetxt('converted/CFrame%04d.dat'%i,c_[data.calibration.cx,t],fmt='%.4f %d')
+    #print(tmp_data.shape,data.inverted.shape)
+    #print(len(tmp_data))
+
+    #if save_h5:
+    print('Saving h5')
+    tmp_cx = array([data.calibration.cx] * len(tmp_data))
+    cx = tmp_cx.reshape(*data.inverted.shape)
+
+    with h5py.File('converted/cdata.h5','w') as f:
+
+        f.create_dataset('flat_inverted',data = tmp_data)
+        f.create_dataset('flat_calibration_inverted',data = tmp_cx)
+
+        f.create_dataset('inverted',data = data.inverted)
+        f.create_dataset('calibration_inverted',data = cx)
+
+    if save_asci:
+        print('Saving ASCI')
+        for i,t in enumerate(tmp_data):
+            savetxt('converted/CFrame%04d.dat'%i,c_[data.calibration.cx,t],fmt='%.4f %d')
 
 if __name__ == '__main__':
     try:
