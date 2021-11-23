@@ -21,6 +21,7 @@ from matplotlib.image import imsave
 
 from argparse import ArgumentParser
 import h5py
+from numpy import concatenate
 
 def main():
     """
@@ -88,6 +89,10 @@ def main():
     tmp_cx = array([data.calibration.cx] * len(tmp_data))
     cx = tmp_cx.reshape(*data.inverted.shape)
 
+    print(array([data.calibration.cx]).shape,tmp_data.shape)
+
+    g = concatenate((array([data.calibration.cx]),tmp_data))
+
     with h5py.File('converted/cdata.h5','w') as f:
 
         f.create_dataset('flat_inverted',data = tmp_data)
@@ -95,6 +100,8 @@ def main():
 
         f.create_dataset('inverted',data = data.inverted)
         f.create_dataset('calibration_inverted',data = cx)
+        f.create_dataset('cx',data = data.calibration.cx)
+        f.create_dataset('g',data = g)
 
     if save_asci:
         print('Saving ASCI')
