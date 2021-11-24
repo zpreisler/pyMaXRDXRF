@@ -74,7 +74,7 @@ def main():
     print(data.inverted.shape)
     print(data.calibration.cx,len(data.calibration.cx))
 
-    tmp_data = data.inverted.reshape(-1,1280)
+    tmp_data = data.inverted.reshape(-1,1280).astype(float)
     
     try:
         os.mkdir('converted')
@@ -84,24 +84,61 @@ def main():
     #print(tmp_data.shape,data.inverted.shape)
     #print(len(tmp_data))
 
-    #if save_h5:
-    print('Saving h5')
-    tmp_cx = array([data.calibration.cx] * len(tmp_data))
-    cx = tmp_cx.reshape(*data.inverted.shape)
 
-    print(array([data.calibration.cx]).shape,tmp_data.shape)
+    text ="""{
+HeaderID = EH:000001:000000:000000 ;
+EDF_Header_Size = 512 ;
+Image = 0 ;
+ByteOrder = LowByteFirst ;
+DataType = DoubleValue ;
+Dim_1 = 1280 ;
+Dim_2 = 16151 ;
+Size = 20673280 ;
+xrdua_1d = True ;
+"""
+
+    print(text)
 
     g = concatenate((array([data.calibration.cx]),tmp_data))
 
-    with h5py.File('converted/cdata.h5','w') as f:
+    with open('file1.edf','w') as f:
+        f.write(text)
+        print('FTELL',f.tell())
+        while f.tell() < 510:
+            f.write(' ')
+        f.write('}\n')
+        print('FTELL',f.tell())
 
-        f.create_dataset('flat_inverted',data = tmp_data)
-        f.create_dataset('flat_calibration_inverted',data = tmp_cx)
+        f.close()
 
-        f.create_dataset('inverted',data = data.inverted)
-        f.create_dataset('calibration_inverted',data = cx)
-        f.create_dataset('cx',data = data.calibration.cx)
-        f.create_dataset('g',data = g)
+    print(g.shape)
+
+    with open('file1.edf','ab') as f:
+        f.seek(512)
+        g.astype(float).tofile(f)
+        f.close()
+ 
+    exit()
+    
+
+    #if save_h5:
+    #print('Saving h5')
+    #tmp_cx = array([data.calibration.cx] * len(tmp_data))
+    #cx = tmp_cx.reshape(*data.inverted.shape)
+
+    #print(array([data.calibration.cx]).shape,tmp_data.shape)
+
+    #g = concatenate((array([data.calibration.cx]),tmp_data))
+
+   # with h5py.File('converted/cdata.h5','w') as f:
+
+    #    f.create_dataset('flat_inverted',data = tmp_data)
+    #    f.create_dataset('flat_calibration_inverted',data = tmp_cx)
+
+    #    f.create_dataset('inverted',data = data.inverted)
+    #    f.create_dataset('calibration_inverted',data = cx)
+    #    f.create_dataset('cx',data = data.calibration.cx)
+    #    f.create_dataset('g',data = g)
 
     if save_asci:
         print('Saving ASCI')

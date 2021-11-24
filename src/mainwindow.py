@@ -241,11 +241,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.intensity_plot.region_x = asarray(region_x)
 
         rgb_image = stack(image,-1)
+
         rgb_image = rgb_image.astype(uint8)
 
-        self.data.image = rgb_image 
-
         if self.mode == 2:
+            self.data.image = rgb_image 
+            self.img.setImage(rgb_image)
+
+        if self.mode == 3:
+            rgb_image = rgb_image.min(axis=2)
+
+            self.data.image = rgb_image 
             self.img.setImage(rgb_image)
 
     def intensityUpdate(self):
@@ -363,8 +369,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def switchModes(self,event):
         if event.key() == QtCore.Qt.Key.Key_M or event.key() == QtCore.Qt.Key.Key_Space:
-            self.mode = (self.mode + 1) % 3
-            modes = ['Intesity','Mono','RGB']
+            self.mode = (self.mode + 1) % 4
+            modes = ['Intesity','Mono','RGB','MIN']
             print('Mode selected:',self.mode,modes[self.mode])
 
             if self.mode == 1:
@@ -378,6 +384,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.monoUpdate()
 
             elif self.mode == 2:
+                self.selected = self.rgb_region[0]
+                self.mono_region.hide()
+                for region in self.rgb_region:
+                    region.show()
+
+                self.rgbUpdate()
+
+            elif self.mode == 3:
                 self.selected = self.rgb_region[0]
                 self.mono_region.hide()
                 for region in self.rgb_region:
