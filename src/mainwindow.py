@@ -142,7 +142,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Mono Region
         """
-
         self.rgb_region = []
         colors = [[232,0,0],[0,255,0],[151,203,255]]
         pos = [445,720,1134]
@@ -157,6 +156,24 @@ class MainWindow(QtWidgets.QMainWindow):
             self.intensity_plot.addItem(region)
 
             region.sigRegionChanged.connect(self.rgbUpdate)
+
+    def setMultiRegion(self):
+        """
+        Mono Region
+        """
+        self.multi_region = []
+        pos = [445,600,720,800,1134]
+
+        for i,x in enumerate(pos):
+            region = LinearRegionItem(brush = [222,222,222,122], hoverBrush = [222,222,222,168], bounds = (0,1279)) 
+            region.setZValue(10)
+            region.setRegion((pos[i],pos[i]+12))
+            region.hide()
+
+            self.multi_region += [region]
+            self.intensity_plot.addItem(region)
+
+            region.sigRegionChanged.connect(self.MultiUpdate)
 
     def __init__(self,data):
         super().__init__()
@@ -197,6 +214,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setMonoRegion()
         self.setRGBRegion()
+        self.setMultiRegion()
 
         self.show()
 
@@ -241,18 +259,47 @@ class MainWindow(QtWidgets.QMainWindow):
         self.intensity_plot.region_x = asarray(region_x)
 
         rgb_image = stack(image,-1)
-
         rgb_image = rgb_image.astype(uint8)
 
         if self.mode == 2:
             self.data.image = rgb_image 
             self.img.setImage(rgb_image)
 
-        if self.mode == 3:
-            rgb_image = rgb_image.min(axis=2)
+        #if self.mode == 3:
+        #    rgb_image = rgb_image.min(axis=2)
 
-            self.data.image = rgb_image 
-            self.img.setImage(rgb_image)
+        #    self.data.image = rgb_image 
+        #    self.img.setImage(rgb_image)
+
+    def MultiUpdate(self):
+        """
+        RGB update
+        """
+        image = []
+        region_x = []
+        for region in self.multi_region:
+            x = asarray(region.getRegion()).astype(float)
+
+            region_x += [x]
+
+            if self.calibration is True:
+                x  = self.data.calibration.ic(x)
+
+            if self.spectra_plot.subtract_snip == True:
+                image += [self.data.crop_snip_spectra(*x)]
+            else:
+                image += [self.data.crop_spectra(*x)]
+
+        self.intensity_plot.region_x = asarray(region_x)
+
+        image = stack(image,-1)
+        image = image.astype(uint8)
+        image = image.min(axis=2)
+
+        if self.mode == 3:
+
+            self.data.image = image 
+            self.img.setImage(image)
 
     def intensityUpdate(self):
 
@@ -381,6 +428,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 for region in self.rgb_region:
                     region.hide()
 
+                for region in self.multi_region:
+                    region.hide()
+
                 self.monoUpdate()
 
             elif self.mode == 2:
@@ -389,20 +439,30 @@ class MainWindow(QtWidgets.QMainWindow):
                 for region in self.rgb_region:
                     region.show()
 
+                for region in self.multi_region:
+                    region.hide()
+
                 self.rgbUpdate()
 
             elif self.mode == 3:
                 self.selected = self.rgb_region[0]
                 self.mono_region.hide()
+
                 for region in self.rgb_region:
+                    region.hide()
+
+                for region in self.multi_region:
                     region.show()
 
-                self.rgbUpdate()
+                self.MultiUpdate()
 
             else:
                 self.selected = None
                 self.mono_region.hide()
                 for region in self.rgb_region:
+                    region.hide()
+
+                for region in self.multi_region:
                     region.hide()
 
                 self.intensityUpdate()
