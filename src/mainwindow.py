@@ -8,11 +8,13 @@ from pyqtgraph import mkQApp,GraphicsLayoutWidget,setConfigOptions
 from pyqtgraph import GraphicsView,ViewBox,Point,PlotItem,ImageItem,AxisItem,ROI,LinearRegionItem,GraphicsLayout,ColorBarItem,HistogramLUTItem
 from pyqtgraph.Qt import QtCore,QtWidgets,QtGui
 
-from matplotlib.pyplot import imsave
+from matplotlib.pyplot import imsave,cm
 
 from numpy import uint8,array,asarray,stack,savetxt,c_,pad,where,minimum,sqrt,argmin,round
 from numpy.random import random,randint
 from itertools import cycle
+
+from PIL import Image
 
 class MainWindow(QtWidgets.QMainWindow):
     """
@@ -355,11 +357,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 print('Saving ROI images',name)
                 name = self.data.path + '/' + 'roi_%d.tiff'%i
-                imsave(name,roi.data.image[::-1])
+                #imsave(name,roi.data.image[::-1])
+                img = Image.fromarray(roi.data.image[::-1])
+                img.save(name,resample=Image.BOX)
 
                 name = self.data.path + '/' + 'roi_crop_%d.tiff'%i
                 print('Saving ROI crop images',name)
-                imsave(name,roi.crop())
+                imsave(name,roi.crop(),cmap=cm.jet)
 
     def adjustSnip(self,event):
         if event.key() == QtCore.Qt.Key.Key_W:

@@ -34,20 +34,26 @@ class Calibration():
     def fce_second(x,a,b,c):
         return a * x**2 + b * x + c 
 
+    @staticmethod
+    def fce_third(x,a,b,c,d):
+        return a * x**3 + b * x**2 + c * x + d
+
     def calibrate(self,n_channels=1280):
         self.n_channels = n_channels
 
         x,y = self.data
-        self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
+        #self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
+        self.opt,self.opt_var = curve_fit(self.fce_third,x,y)
 
         print('Calibrated data:',self.opt)
 
         self.c0 = arange(0,n_channels)
-        self.cx = self.fce_second(self.c0,*self.opt)
+        self.cx = self.fce_third(self.c0,*self.opt)
         self.ic = interp1d(self.cx,self.c0,fill_value='extrapolate')
 
     def c(self,x):
-        return self.fce_second(x,*self.opt)
+        #return self.fce_second(x,*self.opt)
+        return self.fce_third(x,*self.opt)
 
 class DataXRD():
     """
