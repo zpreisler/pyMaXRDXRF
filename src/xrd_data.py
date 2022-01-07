@@ -189,7 +189,7 @@ class DataXRD():
         """
         Read data from source
         """
-        if glob(self.path + '/*.dat'):
+        if glob(self.path + '/F*.dat'):
             self.read_params()
             self.read_xrd()
 
