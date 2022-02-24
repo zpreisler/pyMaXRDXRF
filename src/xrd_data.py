@@ -1,4 +1,4 @@
-from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index,asarray,frombuffer
+from numpy import array,save,load,argmax,swapaxes,loadtxt,arange,pad,roll,minimum,sqrt,expand_dims,log,unravel_index,asarray,frombuffer,arctan,pi
 from matplotlib.pyplot import imshow,plot,figure,show
 from scipy.optimize import curve_fit
 from scipy.interpolate import interp1d
@@ -38,22 +38,32 @@ class Calibration():
     def fce_third(x,a,b,c,d):
         return a * x**3 + b * x**2 + c * x + d
 
+    @staticmethod
+    def fce_arctan(x,a,s,beta):
+        """
+        XRD calibration function 
+        """
+        return (arctan((x + a) / s)) * 180 / pi + beta
+
     def calibrate(self,n_channels=1280):
         self.n_channels = n_channels
 
         x,y = self.data
         #self.opt,self.opt_var = curve_fit(self.fce_second,x,y)
-        self.opt,self.opt_var = curve_fit(self.fce_third,x,y)
+        #self.opt,self.opt_var = curve_fit(self.fce_third,x,y)
+        self.opt,self.opt_var = curve_fit(self.fce_arctan,x,y)
 
         print('Calibrated data:',self.opt)
 
         self.c0 = arange(0,n_channels)
-        self.cx = self.fce_third(self.c0,*self.opt)
+        #self.cx = self.fce_third(self.c0,*self.opt)
+        self.cx = self.fce_arctan(self.c0,*self.opt)
         self.ic = interp1d(self.cx,self.c0,fill_value='extrapolate')
 
     def c(self,x):
         #return self.fce_second(x,*self.opt)
-        return self.fce_third(x,*self.opt)
+        #return self.fce_third(x,*self.opt)
+        return self.fce_arctan(x,*self.opt)
 
 class DataXRD():
     """

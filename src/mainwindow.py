@@ -235,7 +235,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.calibration:
             x  = self.data.calibration.ic(x)
 
-        self.data.image = self.data.crop_spectra(*x)
+        if self.spectra_plot.subtract_snip == True:
+            self.data.image = self.data.crop_snip_spectra(*x)
+        else:
+            self.data.image = self.data.crop_spectra(*x)
+
+        #self.data.image = self.data.crop_spectra(*x)
         if self.mode == 1:
             self.img.setImage(self.data.image)
 
@@ -418,12 +423,62 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.redrawROI()
 
+    def update(self):
+        if self.mode == 1:
+            self.selected = self.mono_region
+
+            self.mono_region.show()
+
+            for region in self.rgb_region:
+                region.hide()
+
+            for region in self.multi_region:
+                region.hide()
+
+            self.monoUpdate()
+
+        elif self.mode == 2:
+            self.selected = self.rgb_region[0]
+            self.mono_region.hide()
+            for region in self.rgb_region:
+                region.show()
+
+            for region in self.multi_region:
+                region.hide()
+
+            self.rgbUpdate()
+
+        elif self.mode == 3:
+            self.selected = self.rgb_region[0]
+            self.mono_region.hide()
+
+            for region in self.rgb_region:
+                region.hide()
+
+            for region in self.multi_region:
+                region.show()
+
+            self.MultiUpdate()
+
+        else:
+            self.selected = None
+            self.mono_region.hide()
+            for region in self.rgb_region:
+                region.hide()
+
+            for region in self.multi_region:
+                region.hide()
+
+            self.intensityUpdate()
+
     def switchModes(self,event):
         if event.key() == QtCore.Qt.Key.Key_M or event.key() == QtCore.Qt.Key.Key_Space:
             self.mode = (self.mode + 1) % 4
             modes = ['Intesity','Mono','RGB','MIN']
             print('Mode selected:',self.mode,modes[self.mode])
+            self.update()
 
+            """
             if self.mode == 1:
                 self.selected = self.mono_region
 
@@ -470,6 +525,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     region.hide()
 
                 self.intensityUpdate()
+                """
 
     def switchRegion(self,event):
 
@@ -495,6 +551,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.spectra_plot.subtract_snip = True
 
             self.redrawROI()
+            self.update()
 
     def shiftY(self,event):
         if event.key() == QtCore.Qt.Key.Key_U:
