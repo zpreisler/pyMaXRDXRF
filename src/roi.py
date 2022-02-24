@@ -162,9 +162,13 @@ class MyROI(ROI):
         z = self.data.inverted[s1,s2]
         conv = self.data.convoluted[s1,s2]
 
-        #print('roi shape:',z.shape)
+        print('roi shape:',z.shape)
 
-        res = 1.0 / (z.shape[0] * z.shape[1])
+        _res = (z.shape[0] * z.shape[1])
+        if _res: 
+            res = 1.0 / (z.shape[0] * z.shape[1])
+        else:
+            res = 1
 
         self.z = z.sum(axis=0).sum(axis=0).astype(float)
         self.conv = conv.sum(axis=0).sum(axis=0).astype(float)

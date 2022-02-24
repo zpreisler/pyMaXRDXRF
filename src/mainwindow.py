@@ -206,7 +206,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setIntensityPlot()
         self.setSpectraPlot()
 
-        self.setFirstRoi()
+        #self.setFirstRoi()
 
         self.spectra_plot.setXLink(self.intensity_plot)
 

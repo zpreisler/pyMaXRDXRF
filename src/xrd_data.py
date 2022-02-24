@@ -16,7 +16,7 @@ class Calibration():
     """
     def __init__(self,name,parent=None,n_channels=1280):
 
-        self.data = array([[1,2,3],[1,2,3]])
+        self.data = array([[1,2,3,4,5],[1,2,3,4,5]])
         self.n_channels = n_channels
 
         try:
