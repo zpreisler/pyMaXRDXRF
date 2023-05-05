@@ -95,7 +95,7 @@ class MyViewBox(ViewBox):
         self.setDefaultPadding(0.0)
 
         #ROI box
-        self.roiBox = QtGui.QGraphicsRectItem(0, 0, 1, 1)
+        self.roiBox = QtWidgets.QGraphicsRectItem(0, 0, 1, 1)
         self.roiBox.setPen(fn.mkPen((255,100,255), width=1))
         self.roiBox.setBrush(fn.mkBrush(255,0,255,100))
         self.roiBox.setZValue(1e9)
